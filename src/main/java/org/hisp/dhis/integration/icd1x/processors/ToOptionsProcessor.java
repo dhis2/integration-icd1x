@@ -38,12 +38,12 @@ import org.hisp.dhis.integration.icd1x.models.Entity;
 import org.hisp.dhis.integration.icd1x.models.Option;
 import org.hisp.dhis.integration.icd1x.models.OptionSet;
 
+@SuppressWarnings( "unchecked" )
 public class ToOptionsProcessor implements Processor
 {
 
     @Override
     public void process( Exchange exchange )
-        throws Exception
     {
         List<Entity> entities = exchange.getProperty( PROPERTY_ENTITIES, List.class );
 

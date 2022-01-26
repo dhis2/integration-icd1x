@@ -44,7 +44,6 @@ public class HeadersSetter implements Processor
 
     @Override
     public void process( Exchange exchange )
-        throws Exception
     {
         exchange.getMessage().setHeader( "API-Version", this.version );
         exchange.getMessage().setHeader( "Accept-Language", this.language );

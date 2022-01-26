@@ -38,12 +38,12 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.hisp.dhis.integration.icd1x.models.Entity;
 
+@SuppressWarnings( "unchecked" )
 public class EnqueueEntitiesProcessor implements Processor
 {
 
     @Override
     public void process( Exchange exchange )
-        throws Exception
     {
 
         Queue<String> entityQueue = exchange.getProperty( PROPERTY_ENTITY_ID_QUEUE, Queue.class );

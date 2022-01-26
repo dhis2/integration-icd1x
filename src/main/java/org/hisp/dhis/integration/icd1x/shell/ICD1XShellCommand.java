@@ -43,13 +43,13 @@ public class ICD1XShellCommand
         this.producerTemplate = producerTemplate;
     }
 
+    @SuppressWarnings( "unused" )
     @ShellMethod( "Generate DHIS2 OptionsSet with ICD11 codes" )
     public void icd11(
         @ShellOption( defaultValue = "", help = "ICD Entity ID to start with" ) String rootId,
         @ShellOption( defaultValue = "2021-05", help = "ICD 11 Release Id. One of 2021-05, 2020-09, 2019-04, 2018" ) String releaseId,
         @ShellOption( defaultValue = "mms" ) String linearizationName,
         @ShellOption( defaultValue = "en", help = "Language for entity descriptions. One of ar, en, es, zh" ) String language )
-        throws Exception
     {
         producerTemplate.requestBody( "direct:icd11", "" );
     }

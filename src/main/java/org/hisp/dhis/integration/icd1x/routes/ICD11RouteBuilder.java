@@ -48,7 +48,6 @@ public class ICD11RouteBuilder extends RouteBuilder
 
     @Override
     public void configure()
-        throws Exception
     {
 
         final HeadersSetter headersSetter = new HeadersSetter( "v2", "en" );
