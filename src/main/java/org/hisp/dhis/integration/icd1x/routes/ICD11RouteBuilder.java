@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, University of Oslo
+ * Copyright (c) 2004-2022, University of Oslo
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,14 +25,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package org.hisp.dhis.integration.icd1x.routes;
 
+import java.util.Collections;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
 
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.model.dataformat.JsonLibrary;
 import org.hisp.dhis.integration.icd1x.models.Entity;
 import org.hisp.dhis.integration.icd1x.processors.EnqueueEntitiesProcessor;
 import org.hisp.dhis.integration.icd1x.processors.HeadersSetter;
@@ -43,36 +42,37 @@ import org.springframework.stereotype.Component;
 public class ICD11RouteBuilder extends RouteBuilder
 {
 
+    public static final String PROPERTY_ENTITY_ID_QUEUE = "entityIdsQueue";
+
+    public static final String PROPERTY_ENTITIES = "entities";
+
     @Override
     public void configure()
         throws Exception
     {
 
-        // todo check whether it's safe to declare queues, lists outside the
-        // route. Shouldn't be a problem since this route doesn't execute
-        // repeatedly
-        final Queue<String> entityIdsQueue = new LinkedList<>();
-        entityIdsQueue.add( "" );
-
-        final List<Entity> entities = new LinkedList<>();
-
         final HeadersSetter headersSetter = new HeadersSetter( "v2", "en" );
 
         // todo parallelize if necessary
-        from( "timer:analytics?repeatCount=1&period=3000000" )
-            .loopDoWhile( exchange -> !entityIdsQueue.isEmpty() )
-            .process( exchange -> exchange.setProperty( "id", entityIdsQueue.poll() ) )
+        from( "direct:icd11" )
+            .routeId( "icd11-route" )
+            .log( "Parsing ICD11..." )
+            .setProperty( PROPERTY_ENTITY_ID_QUEUE )
+            .exchange( exchange -> new LinkedList<>( Collections.singleton( "" ) ) )
+            .setProperty( PROPERTY_ENTITIES ).exchange( exchange -> new LinkedList<>() )
+            .loopDoWhile( exchange -> !exchange.getProperty( PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).isEmpty() )
+            .setProperty( "id" ).exchange( ex -> ex.getProperty( PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).poll() )
             .process( headersSetter )
             .toD( "http://localhost/icd/release/11/2021-05/mms/${exchangeProperty.id}" )
             .unmarshal()
             .json( Entity.class )
-            .process( new EnqueueEntitiesProcessor( entityIdsQueue, entities ) )
+            .process( new EnqueueEntitiesProcessor() )
             .end()
-            .to( "direct:to-d2" );
-
-        from( "direct:to-d2" )
-            .process( new ToOptionsProcessor( entities ) )
-            .to( "" )
+            .process( new ToOptionsProcessor() )
+            .marshal()
+            .json( JsonLibrary.Jackson, false )
+            .log( "Writing OptionSets to the file..." )
+            .to( "file:/tmp/options.json?charset=utf-8" )
             .end();
 
     }

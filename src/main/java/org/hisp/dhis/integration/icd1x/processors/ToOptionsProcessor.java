@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, University of Oslo
+ * Copyright (c) 2004-2022, University of Oslo
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,8 +25,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package org.hisp.dhis.integration.icd1x.processors;
+
+import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_ENTITIES;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -34,22 +38,15 @@ import org.hisp.dhis.integration.icd1x.models.Entity;
 import org.hisp.dhis.integration.icd1x.models.Option;
 import org.hisp.dhis.integration.icd1x.models.OptionSet;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 public class ToOptionsProcessor implements Processor
 {
-    private List<Entity> entities;
-
-    public ToOptionsProcessor( List<Entity> entities )
-    {
-        this.entities = entities;
-    }
 
     @Override
     public void process( Exchange exchange )
         throws Exception
     {
+        List<Entity> entities = exchange.getProperty( PROPERTY_ENTITIES, List.class );
+
         OptionSet optionSet = new OptionSet();
         optionSet.setName( "icd11" );
         optionSet.setValueType( "TEXT" );

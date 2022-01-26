@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, University of Oslo
+ * Copyright (c) 2004-2022, University of Oslo
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,12 +25,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package org.hisp.dhis.integration.icd1x.processors;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
-import org.springframework.http.HttpHeaders;
 
 public class HeadersSetter implements Processor
 {
@@ -51,6 +49,6 @@ public class HeadersSetter implements Processor
         exchange.getMessage().setHeader( "API-Version", this.version );
         exchange.getMessage().setHeader( "Accept-Language", this.language );
         exchange.getMessage().setHeader( Exchange.HTTP_METHOD, "GET" );
-        exchange.getMessage().setHeader( HttpHeaders.ACCEPT, "application/json" );
+        exchange.getMessage().setHeader( "Accept", "application/json" );
     }
 }

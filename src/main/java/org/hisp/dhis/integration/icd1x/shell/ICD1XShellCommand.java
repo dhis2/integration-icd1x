@@ -25,51 +25,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.hisp.dhis.integration.icd1x.processors;
+package org.hisp.dhis.integration.icd1x.shell;
 
-import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_ENTITIES;
-import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_ENTITY_ID_QUEUE;
+import org.apache.camel.ProducerTemplate;
+import org.springframework.shell.standard.ShellComponent;
+import org.springframework.shell.standard.ShellMethod;
+import org.springframework.shell.standard.ShellOption;
 
-import java.util.List;
-import java.util.Queue;
-import java.util.stream.Collectors;
-
-import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
-import org.hisp.dhis.integration.icd1x.models.Entity;
-
-public class EnqueueEntitiesProcessor implements Processor
+@ShellComponent
+public class ICD1XShellCommand
 {
 
-    @Override
-    public void process( Exchange exchange )
+    private final ProducerTemplate producerTemplate;
+
+    public ICD1XShellCommand( ProducerTemplate producerTemplate )
+    {
+        this.producerTemplate = producerTemplate;
+    }
+
+    @ShellMethod( "Generate DHIS2 OptionsSet with ICD11 codes" )
+    public void icd11(
+        @ShellOption( defaultValue = "", help = "ICD Entity ID to start with" ) String rootId,
+        @ShellOption( defaultValue = "2021-05", help = "ICD 11 Release Id. One of 2021-05, 2020-09, 2019-04, 2018" ) String releaseId,
+        @ShellOption( defaultValue = "mms" ) String linearizationName,
+        @ShellOption( defaultValue = "en", help = "Language for entity descriptions. One of ar, en, es, zh" ) String language )
         throws Exception
     {
-
-        Queue<String> entityQueue = exchange.getProperty( PROPERTY_ENTITY_ID_QUEUE, Queue.class );
-        List<Entity> entities = exchange.getProperty( PROPERTY_ENTITIES, List.class );
-
-        Entity entity = exchange.getMessage().getBody( Entity.class );
-        entities.add( entity );
-
-        if ( entity.getChild() == null )
-        {
-            return;
-        }
-        entityQueue.addAll( entity.getChild().stream().map( url -> {
-            String[] split = url.split( "/" );
-            if ( split.length == 9 )
-            {
-                return split[split.length - 1];
-            }
-            else if ( split.length == 10 )
-            {
-                return split[split.length - 2] + "/" + split[split.length - 1];
-            }
-            else
-            {
-                throw new RuntimeException( "Unexpected URL format returned as a child : " + url );
-            }
-        } ).filter( id -> !id.equals( "unspecified" ) ).collect( Collectors.toList() ) );
+        producerTemplate.requestBody( "direct:icd11", "" );
     }
 }
