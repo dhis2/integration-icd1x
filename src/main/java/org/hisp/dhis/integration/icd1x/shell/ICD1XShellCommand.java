@@ -28,9 +28,13 @@
 package org.hisp.dhis.integration.icd1x.shell;
 
 import org.apache.camel.ProducerTemplate;
+import org.hisp.dhis.integration.icd1x.config.ICD11RouteConfig;
+import org.hisp.dhis.integration.icd1x.models.OAuthResponse;
+import org.hisp.dhis.integration.icd1x.routes.ICDAuthRouteBuilder;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
+import org.springframework.util.StringUtils;
 
 @ShellComponent
 public class ICD1XShellCommand
@@ -49,8 +53,42 @@ public class ICD1XShellCommand
         @ShellOption( defaultValue = "", help = "ICD Entity ID to start with" ) String rootId,
         @ShellOption( defaultValue = "2021-05", help = "ICD 11 Release Id. One of 2021-05, 2020-09, 2019-04, 2018" ) String releaseId,
         @ShellOption( defaultValue = "mms" ) String linearizationName,
-        @ShellOption( defaultValue = "en", help = "Language for entity descriptions. One of ar, en, es, zh" ) String language )
+        @ShellOption( defaultValue = "en", help = "Language for entity descriptions. One of ar, en, es, zh" ) String language,
+        @ShellOption( defaultValue = "http://localhost" ) String host,
+        @ShellOption( defaultValue = "" ) String clientId,
+        @ShellOption( defaultValue = "" ) String clientSecret,
+        @ShellOption( defaultValue = "options.json" ) String fileOut )
     {
-        producerTemplate.requestBody( "direct:icd11", "" );
+        ICD11RouteConfig icd11RouteConfig = new ICD11RouteConfig();
+        icd11RouteConfig.setRootId( rootId );
+        icd11RouteConfig.setHost( host );
+        icd11RouteConfig.setClientId( clientId );
+        icd11RouteConfig.setClientSecret( clientSecret );
+        icd11RouteConfig.setLinearizationName( linearizationName );
+        icd11RouteConfig.setReleaseId( releaseId );
+        icd11RouteConfig.setLanguage( language );
+        icd11RouteConfig.setFileOut( fileOut );
+
+        boolean useAuth = StringUtils.hasLength( icd11RouteConfig.getClientId() );
+        if ( useAuth && !StringUtils.hasLength( icd11RouteConfig.getClientSecret() ) )
+        {
+            throw new RuntimeException( "Client Secret is required" );
+        }
+
+        // todo validate host and other validation
+
+        if ( useAuth )
+        {
+            OAuthResponse oAuthResponse = producerTemplate.requestBody( "direct:icd-auth", icd11RouteConfig,
+                OAuthResponse.class );
+            producerTemplate.sendBodyAndProperty( "direct:icd11", icd11RouteConfig,
+                ICDAuthRouteBuilder.PROPERTY_AUTH,
+                oAuthResponse );
+        }
+        else
+        {
+            // using ICD11 Docker Container
+            producerTemplate.sendBody( "direct:icd11", icd11RouteConfig );
+        }
     }
 }

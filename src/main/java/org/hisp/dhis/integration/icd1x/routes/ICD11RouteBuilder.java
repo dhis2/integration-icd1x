@@ -32,6 +32,7 @@ import java.util.LinkedList;
 
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.dataformat.JsonLibrary;
+import org.hisp.dhis.integration.icd1x.config.ICD11RouteConfig;
 import org.hisp.dhis.integration.icd1x.models.Entity;
 import org.hisp.dhis.integration.icd1x.processors.EnqueueEntitiesProcessor;
 import org.hisp.dhis.integration.icd1x.processors.HeadersSetter;
@@ -46,23 +47,33 @@ public class ICD11RouteBuilder extends RouteBuilder
 
     public static final String PROPERTY_ENTITIES = "entities";
 
+    public static final String PROPERTY_LANGUAGE = "language";
+
     @Override
     public void configure()
     {
-
-        final HeadersSetter headersSetter = new HeadersSetter( "v2", "en" );
 
         // todo parallelize if necessary
         from( "direct:icd11" )
             .routeId( "icd11-route" )
             .log( "Parsing ICD11..." )
-            .setProperty( PROPERTY_ENTITY_ID_QUEUE )
-            .exchange( exchange -> new LinkedList<>( Collections.singleton( "" ) ) )
-            .setProperty( PROPERTY_ENTITIES ).exchange( exchange -> new LinkedList<>() )
+            .process( exchange -> {
+                // setting all the properties
+                ICD11RouteConfig routeConfig = exchange.getMessage().getBody( ICD11RouteConfig.class );
+                exchange.setProperty( "host", routeConfig.getHost() );
+                exchange.setProperty( "release", routeConfig.getReleaseId() );
+                exchange.setProperty( "linearization", routeConfig.getLinearizationName() );
+                exchange.setProperty( PROPERTY_LANGUAGE, routeConfig.getLanguage() );
+                exchange.setProperty( "file", routeConfig.getFileOut() );
+
+                exchange.setProperty( PROPERTY_ENTITY_ID_QUEUE, new LinkedList<>( Collections.singleton( "" ) ) );
+                exchange.setProperty( PROPERTY_ENTITIES, new LinkedList<>() );
+            } )
             .loopDoWhile( exchange -> !exchange.getProperty( PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).isEmpty() )
             .setProperty( "id" ).exchange( ex -> ex.getProperty( PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).poll() )
-            .process( headersSetter )
-            .toD( "http://localhost/icd/release/11/2021-05/mms/${exchangeProperty.id}" )
+            .process( new HeadersSetter() )
+            .toD(
+                "${exchangeProperty.host}/icd/release/11/${exchangeProperty.release}/${exchangeProperty.linearization}/${exchangeProperty.id}" )
             .unmarshal()
             .json( Entity.class )
             .process( new EnqueueEntitiesProcessor() )
@@ -70,8 +81,8 @@ public class ICD11RouteBuilder extends RouteBuilder
             .process( new ToOptionsProcessor() )
             .marshal()
             .json( JsonLibrary.Jackson, false )
-            .log( "Writing OptionSets to the file..." )
-            .to( "file:/tmp/options.json?charset=utf-8" )
+            .log( "Writing OptionSets to ${exchangeProperty.file}" )
+            .toD( "file:${exchangeProperty.file}?charset=utf-8" )
             .end();
 
     }

@@ -25,30 +25,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.hisp.dhis.integration.icd1x.processors;
-
-import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_LANGUAGE;
+package org.hisp.dhis.integration.icd1x.routes;
 
 import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
+import org.apache.camel.builder.RouteBuilder;
+import org.hisp.dhis.integration.icd1x.config.ICD11RouteConfig;
 import org.hisp.dhis.integration.icd1x.models.OAuthResponse;
-import org.hisp.dhis.integration.icd1x.routes.ICDAuthRouteBuilder;
+import org.springframework.stereotype.Component;
 
-public class HeadersSetter implements Processor
+@Component
+public class ICDAuthRouteBuilder extends RouteBuilder
 {
+    public static final String PROPERTY_AUTH = "auth";
 
     @Override
-    public void process( Exchange exchange )
+    public void configure()
+        throws Exception
     {
-        exchange.getMessage().setHeader( "API-Version", "v2" );
-        exchange.getMessage().setHeader( "Accept-Language", exchange.getProperty( PROPERTY_LANGUAGE ) );
-        exchange.getMessage().setHeader( Exchange.HTTP_METHOD, "GET" );
-        exchange.getMessage().setHeader( "Accept", "application/json" );
-
-        OAuthResponse auth = exchange.getProperty( ICDAuthRouteBuilder.PROPERTY_AUTH, OAuthResponse.class );
-        if ( auth != null )
-        {
-            exchange.getMessage().setHeader( "Authorization", "Bearer " + auth.getAccessToken() );
-        }
+        from( "direct:icd-auth" )
+            .setHeader( Exchange.CONTENT_TYPE )
+            .simple( "application/x-www-form-urlencoded" )
+            .setHeader( "Accept" )
+            .simple( "application/json" )
+            .setBody( exchange -> {
+                ICD11RouteConfig config = exchange.getMessage().getBody( ICD11RouteConfig.class );
+                return "grant_type=client_credentials&client_id=" + config.getClientId()
+                    + "&client_secret=" + config.getClientSecret() + "&scope=icdapi_access";
+            } )
+            .setHeader( Exchange.HTTP_METHOD )
+            .simple( "POST" )
+            .log( "Authenticating..." )
+            .to( "https://icdaccessmanagement.who.int/connect/token" )
+            .unmarshal().json( OAuthResponse.class )
+            .end();
     }
 }

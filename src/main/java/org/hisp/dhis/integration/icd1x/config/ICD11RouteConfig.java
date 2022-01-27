@@ -25,30 +25,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.hisp.dhis.integration.icd1x.processors;
+package org.hisp.dhis.integration.icd1x.config;
 
-import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_LANGUAGE;
+import lombok.Data;
 
-import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
-import org.hisp.dhis.integration.icd1x.models.OAuthResponse;
-import org.hisp.dhis.integration.icd1x.routes.ICDAuthRouteBuilder;
-
-public class HeadersSetter implements Processor
+@Data
+public class ICD11RouteConfig
 {
+    private String rootId;
 
-    @Override
-    public void process( Exchange exchange )
-    {
-        exchange.getMessage().setHeader( "API-Version", "v2" );
-        exchange.getMessage().setHeader( "Accept-Language", exchange.getProperty( PROPERTY_LANGUAGE ) );
-        exchange.getMessage().setHeader( Exchange.HTTP_METHOD, "GET" );
-        exchange.getMessage().setHeader( "Accept", "application/json" );
+    private String releaseId;
 
-        OAuthResponse auth = exchange.getProperty( ICDAuthRouteBuilder.PROPERTY_AUTH, OAuthResponse.class );
-        if ( auth != null )
-        {
-            exchange.getMessage().setHeader( "Authorization", "Bearer " + auth.getAccessToken() );
-        }
-    }
+    private String linearizationName;
+
+    private String language;
+
+    private String host;
+
+    private String clientId;
+
+    private String clientSecret;
+
+    private String fileOut;
 }

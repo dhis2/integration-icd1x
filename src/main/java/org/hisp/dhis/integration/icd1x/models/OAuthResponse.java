@@ -25,30 +25,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.hisp.dhis.integration.icd1x.processors;
+package org.hisp.dhis.integration.icd1x.models;
 
-import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_LANGUAGE;
+import lombok.Data;
 
-import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
-import org.hisp.dhis.integration.icd1x.models.OAuthResponse;
-import org.hisp.dhis.integration.icd1x.routes.ICDAuthRouteBuilder;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class HeadersSetter implements Processor
+@Data
+@JsonIgnoreProperties( ignoreUnknown = true )
+public class OAuthResponse
 {
-
-    @Override
-    public void process( Exchange exchange )
-    {
-        exchange.getMessage().setHeader( "API-Version", "v2" );
-        exchange.getMessage().setHeader( "Accept-Language", exchange.getProperty( PROPERTY_LANGUAGE ) );
-        exchange.getMessage().setHeader( Exchange.HTTP_METHOD, "GET" );
-        exchange.getMessage().setHeader( "Accept", "application/json" );
-
-        OAuthResponse auth = exchange.getProperty( ICDAuthRouteBuilder.PROPERTY_AUTH, OAuthResponse.class );
-        if ( auth != null )
-        {
-            exchange.getMessage().setHeader( "Authorization", "Bearer " + auth.getAccessToken() );
-        }
-    }
+    @JsonProperty( "access_token" )
+    private String accessToken;
 }
