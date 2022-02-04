@@ -36,7 +36,6 @@ import org.hisp.dhis.integration.icd1x.routes.ICDAuthRouteBuilder;
 
 public class HeadersSetter implements Processor
 {
-
     @Override
     public void process( Exchange exchange )
     {

@@ -39,7 +39,6 @@ import org.springframework.util.StringUtils;
 @ShellComponent
 public class ICD1XShellCommand
 {
-
     private final ProducerTemplate producerTemplate;
 
     public ICD1XShellCommand( ProducerTemplate producerTemplate )

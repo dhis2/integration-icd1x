@@ -42,7 +42,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class ICD11RouteBuilder extends RouteBuilder
 {
-
     public static final String PROPERTY_ENTITY_ID_QUEUE = "entityIdsQueue";
 
     public static final String PROPERTY_ENTITIES = "entities";

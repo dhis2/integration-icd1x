@@ -41,7 +41,6 @@ import org.hisp.dhis.integration.icd1x.models.OptionSet;
 @SuppressWarnings( "unchecked" )
 public class ToOptionsProcessor implements Processor
 {
-
     @Override
     public void process( Exchange exchange )
     {
