@@ -47,4 +47,6 @@ public class ICD11RouteConfig
     private String clientSecret;
 
     private String fileOut;
+
+    private boolean verbose;
 }

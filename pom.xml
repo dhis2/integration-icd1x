@@ -125,7 +125,7 @@
                             <goal>repackage</goal>
                         </goals>
                         <configuration>
-                            <finalName>dhis2-t2a</finalName>
+                            <finalName>dhis2-integration-icdx</finalName>
                         </configuration>
                     </execution>
                 </executions>

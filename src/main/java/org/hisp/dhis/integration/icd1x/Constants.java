@@ -25,32 +25,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.hisp.dhis.integration.icd1x.processors;
+package org.hisp.dhis.integration.icd1x;
 
-import static org.hisp.dhis.integration.icd1x.Constants.PROPERTY_LANGUAGE;
-
-import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
-import org.apache.camel.component.http.HttpMethods;
-import org.apache.http.HttpHeaders;
-import org.apache.http.entity.ContentType;
-import org.hisp.dhis.integration.icd1x.models.OAuthResponse;
-import org.hisp.dhis.integration.icd1x.routes.ICDAuthRouteBuilder;
-
-public class HeadersSetter implements Processor
+public class Constants
 {
-    @Override
-    public void process( Exchange exchange )
-    {
-        exchange.getMessage().setHeader( "API-Version", "v2" );
-        exchange.getMessage().setHeader( HttpHeaders.ACCEPT_LANGUAGE, exchange.getProperty( PROPERTY_LANGUAGE ) );
-        exchange.getMessage().setHeader( Exchange.HTTP_METHOD, HttpMethods.GET );
-        exchange.getMessage().setHeader( HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType() );
+    public static final String PROPERTY_ENTITY_ID_QUEUE = "entityIdsQueue";
 
-        OAuthResponse auth = exchange.getProperty( ICDAuthRouteBuilder.PROPERTY_AUTH, OAuthResponse.class );
-        if ( auth != null )
-        {
-            exchange.getMessage().setHeader( HttpHeaders.AUTHORIZATION, "Bearer " + auth.getAccessToken() );
-        }
+    public static final String PROPERTY_ENTITIES = "entities";
+
+    public static final String PROPERTY_LANGUAGE = "language";
+
+    public static final String PROPERTY_OUTPUT_FILE = "file";
+
+    public static final String PROPERTY_HOST = "host";
+
+    public static final String PROPERTY_LINEARIZATION = "linearization";
+
+    public static final String PROPERTY_RELEASE = "release";
+
+    public static final String PROPERTY_ID = "id";
+
+    public static final String VERBOSE = "verbose";
+
+    public static String getAsExchangeProperty( String property )
+    {
+        return String.format( "${exchangeProperty.%s}", property );
     }
 }

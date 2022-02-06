@@ -47,16 +47,17 @@ public class ICD1XShellCommand
     }
 
     @SuppressWarnings( "unused" )
-    @ShellMethod( "Generate DHIS2 OptionsSet with ICD11 codes" )
+    @ShellMethod( "Generate DHIS2 OptionsSet with ICD11 codes and saves the output to a file" )
     public void icd11(
         @ShellOption( defaultValue = "", help = "ICD Entity ID to start with" ) String rootId,
         @ShellOption( defaultValue = "2021-05", help = "ICD 11 Release Id. One of 2021-05, 2020-09, 2019-04, 2018" ) String releaseId,
-        @ShellOption( defaultValue = "mms" ) String linearizationName,
+        @ShellOption( defaultValue = "mms", help = "Short name for the linearization. e.g. mms for ICD Mortality and Morbidity Statistics" ) String linearizationName,
         @ShellOption( defaultValue = "en", help = "Language for entity descriptions. One of ar, en, es, zh" ) String language,
-        @ShellOption( defaultValue = "http://localhost" ) String host,
-        @ShellOption( defaultValue = "" ) String clientId,
-        @ShellOption( defaultValue = "" ) String clientSecret,
-        @ShellOption( defaultValue = "options.json" ) String fileOut )
+        @ShellOption( defaultValue = "http://localhost", help = "Host of the ICD11 repository. The default value works with docker approach" ) String host,
+        @ShellOption( defaultValue = "The client id to be used with the publicly hosted icd1 repository" ) String clientId,
+        @ShellOption( defaultValue = "The client secret to be used with the publicly hosted icd1 repository" ) String clientSecret,
+        @ShellOption( defaultValue = "options.json", help = "Path to the output file" ) String fileOut,
+        @ShellOption( help = "Indicates whether progress should be displayed verbosely" ) boolean verbose )
     {
         ICD11RouteConfig icd11RouteConfig = new ICD11RouteConfig();
         icd11RouteConfig.setRootId( rootId );
@@ -67,6 +68,7 @@ public class ICD1XShellCommand
         icd11RouteConfig.setReleaseId( releaseId );
         icd11RouteConfig.setLanguage( language );
         icd11RouteConfig.setFileOut( fileOut );
+        icd11RouteConfig.setVerbose( verbose );
 
         boolean useAuth = StringUtils.hasLength( icd11RouteConfig.getClientId() );
         if ( useAuth && !StringUtils.hasLength( icd11RouteConfig.getClientSecret() ) )

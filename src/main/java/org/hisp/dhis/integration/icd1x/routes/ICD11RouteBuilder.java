@@ -27,11 +27,14 @@
  */
 package org.hisp.dhis.integration.icd1x.routes;
 
+import static org.hisp.dhis.integration.icd1x.Constants.getAsExchangeProperty;
+
 import java.util.Collections;
 import java.util.LinkedList;
 
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.dataformat.JsonLibrary;
+import org.hisp.dhis.integration.icd1x.Constants;
 import org.hisp.dhis.integration.icd1x.config.ICD11RouteConfig;
 import org.hisp.dhis.integration.icd1x.models.Entity;
 import org.hisp.dhis.integration.icd1x.processors.EnqueueEntitiesProcessor;
@@ -42,11 +45,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class ICD11RouteBuilder extends RouteBuilder
 {
-    public static final String PROPERTY_ENTITY_ID_QUEUE = "entityIdsQueue";
-
-    public static final String PROPERTY_ENTITIES = "entities";
-
-    public static final String PROPERTY_LANGUAGE = "language";
 
     @Override
     public void configure()
@@ -59,20 +57,27 @@ public class ICD11RouteBuilder extends RouteBuilder
             .process( exchange -> {
                 // setting all the properties
                 ICD11RouteConfig routeConfig = exchange.getMessage().getBody( ICD11RouteConfig.class );
-                exchange.setProperty( "host", routeConfig.getHost() );
-                exchange.setProperty( "release", routeConfig.getReleaseId() );
-                exchange.setProperty( "linearization", routeConfig.getLinearizationName() );
-                exchange.setProperty( PROPERTY_LANGUAGE, routeConfig.getLanguage() );
-                exchange.setProperty( "file", routeConfig.getFileOut() );
+                exchange.setProperty( Constants.PROPERTY_HOST, routeConfig.getHost() );
+                exchange.setProperty( Constants.PROPERTY_RELEASE, routeConfig.getReleaseId() );
+                exchange.setProperty( Constants.PROPERTY_LINEARIZATION, routeConfig.getLinearizationName() );
+                exchange.setProperty( Constants.PROPERTY_LANGUAGE, routeConfig.getLanguage() );
+                exchange.setProperty( Constants.PROPERTY_OUTPUT_FILE, routeConfig.getFileOut() );
+                exchange.setProperty( Constants.VERBOSE, routeConfig.isVerbose() );
 
-                exchange.setProperty( PROPERTY_ENTITY_ID_QUEUE, new LinkedList<>( Collections.singleton( "" ) ) );
-                exchange.setProperty( PROPERTY_ENTITIES, new LinkedList<>() );
+                exchange.setProperty( Constants.PROPERTY_ENTITY_ID_QUEUE,
+                    new LinkedList<>( Collections.singleton( "" ) ) );
+                exchange.setProperty( Constants.PROPERTY_ENTITIES, new LinkedList<>() );
             } )
-            .loopDoWhile( exchange -> !exchange.getProperty( PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).isEmpty() )
-            .setProperty( "id" ).exchange( ex -> ex.getProperty( PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).poll() )
+            .loopDoWhile(
+                exchange -> !exchange.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).isEmpty() )
+            .setProperty( Constants.PROPERTY_ID )
+            .exchange( ex -> ex.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).poll() )
             .process( new HeadersSetter() )
             .toD(
-                "${exchangeProperty.host}/icd/release/11/${exchangeProperty.release}/${exchangeProperty.linearization}/${exchangeProperty.id}" )
+                getAsExchangeProperty( Constants.PROPERTY_HOST )
+                    + "/icd/release/11/" + getAsExchangeProperty( Constants.PROPERTY_RELEASE )
+                    + "/" + getAsExchangeProperty( Constants.PROPERTY_LINEARIZATION )
+                    + "/" + getAsExchangeProperty( Constants.PROPERTY_ID ) )
             .unmarshal()
             .json( Entity.class )
             .process( new EnqueueEntitiesProcessor() )
@@ -80,8 +85,8 @@ public class ICD11RouteBuilder extends RouteBuilder
             .process( new ToOptionsProcessor() )
             .marshal()
             .json( JsonLibrary.Jackson, false )
-            .log( "Writing OptionSets to ${exchangeProperty.file}" )
-            .toD( "file:${exchangeProperty.file}?charset=utf-8" )
+            .log( "Writing OptionSets to " + getAsExchangeProperty( Constants.PROPERTY_OUTPUT_FILE ) )
+            .toD( "file:" + getAsExchangeProperty( Constants.PROPERTY_OUTPUT_FILE ) + "?charset=utf-8" )
             .end();
 
     }

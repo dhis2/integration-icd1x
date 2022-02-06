@@ -27,7 +27,7 @@
  */
 package org.hisp.dhis.integration.icd1x.processors;
 
-import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_ENTITIES;
+import static org.hisp.dhis.integration.icd1x.Constants.PROPERTY_ENTITIES;
 
 import java.util.List;
 import java.util.stream.Collectors;

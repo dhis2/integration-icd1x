@@ -27,25 +27,27 @@
  */
 package org.hisp.dhis.integration.icd1x.processors;
 
-import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_ENTITIES;
-import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_ENTITY_ID_QUEUE;
-
 import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.hisp.dhis.integration.icd1x.Constants;
 import org.hisp.dhis.integration.icd1x.models.Entity;
 
 @SuppressWarnings( "unchecked" )
 public class EnqueueEntitiesProcessor implements Processor
 {
+    private static final Logger LOG = LogManager.getLogger( EnqueueEntitiesProcessor.class );
+
     @Override
     public void process( Exchange exchange )
     {
-        Queue<String> entityQueue = exchange.getProperty( PROPERTY_ENTITY_ID_QUEUE, Queue.class );
-        List<Entity> entities = exchange.getProperty( PROPERTY_ENTITIES, List.class );
+        Queue<String> entityQueue = exchange.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, Queue.class );
+        List<Entity> entities = exchange.getProperty( Constants.PROPERTY_ENTITIES, List.class );
 
         Entity entity = exchange.getMessage().getBody( Entity.class );
         entities.add( entity );
@@ -54,6 +56,12 @@ public class EnqueueEntitiesProcessor implements Processor
         {
             return;
         }
+
+        if ( exchange.getProperty( Constants.VERBOSE, Boolean.class ) )
+        {
+            LOG.info( "Processed entity [{}] {}", entity.getCode(), entity.getTitle().getValue() );
+        }
+
         entityQueue.addAll( entity.getChild().stream().map( url -> {
             String[] split = url.split( "/" );
             if ( split.length == 9 )
