@@ -30,7 +30,7 @@ package org.hisp.dhis.integration.icd1x.config;
 import lombok.Data;
 
 @Data
-public class ICD11RouteConfig
+public class ICD11CommandConfig
 {
     private String rootId;
 

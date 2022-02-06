@@ -28,9 +28,8 @@
 package org.hisp.dhis.integration.icd1x.shell;
 
 import org.apache.camel.ProducerTemplate;
-import org.hisp.dhis.integration.icd1x.config.ICD11RouteConfig;
-import org.hisp.dhis.integration.icd1x.models.OAuthResponse;
-import org.hisp.dhis.integration.icd1x.routes.ICDAuthRouteBuilder;
+import org.hisp.dhis.integration.icd1x.Constants;
+import org.hisp.dhis.integration.icd1x.config.ICD11CommandConfig;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
@@ -47,6 +46,13 @@ public class ICD1XShellCommand
     }
 
     @SuppressWarnings( "unused" )
+    @ShellMethod( "Generate DHIS2 OptionsSet with ICD10 codes and saves the output to a file" )
+    public void ic10()
+    {
+
+    }
+
+    @SuppressWarnings( "unused" )
     @ShellMethod( "Generate DHIS2 OptionsSet with ICD11 codes and saves the output to a file" )
     public void icd11(
         @ShellOption( defaultValue = "", help = "ICD Entity ID to start with" ) String rootId,
@@ -59,37 +65,26 @@ public class ICD1XShellCommand
         @ShellOption( defaultValue = "options.json", help = "Path to the output file" ) String fileOut,
         @ShellOption( help = "Indicates whether progress should be displayed verbosely" ) boolean verbose )
     {
-        ICD11RouteConfig icd11RouteConfig = new ICD11RouteConfig();
-        icd11RouteConfig.setRootId( rootId );
-        icd11RouteConfig.setHost( host );
-        icd11RouteConfig.setClientId( clientId );
-        icd11RouteConfig.setClientSecret( clientSecret );
-        icd11RouteConfig.setLinearizationName( linearizationName );
-        icd11RouteConfig.setReleaseId( releaseId );
-        icd11RouteConfig.setLanguage( language );
-        icd11RouteConfig.setFileOut( fileOut );
-        icd11RouteConfig.setVerbose( verbose );
+        ICD11CommandConfig icd11CommandConfig = new ICD11CommandConfig();
+        icd11CommandConfig.setRootId( rootId );
+        icd11CommandConfig.setHost( host );
+        icd11CommandConfig.setClientId( clientId );
+        icd11CommandConfig.setClientSecret( clientSecret );
+        icd11CommandConfig.setLinearizationName( linearizationName );
+        icd11CommandConfig.setReleaseId( releaseId );
+        icd11CommandConfig.setLanguage( language );
+        icd11CommandConfig.setFileOut( fileOut );
+        icd11CommandConfig.setVerbose( verbose );
 
-        boolean useAuth = StringUtils.hasLength( icd11RouteConfig.getClientId() );
-        if ( useAuth && !StringUtils.hasLength( icd11RouteConfig.getClientSecret() ) )
+        boolean useAuth = StringUtils.hasLength( icd11CommandConfig.getClientId() );
+        if ( useAuth && !StringUtils.hasLength( icd11CommandConfig.getClientSecret() ) )
         {
             throw new RuntimeException( "Client Secret is required" );
         }
 
         // todo validate host and other validation
 
-        if ( useAuth )
-        {
-            OAuthResponse oAuthResponse = producerTemplate.requestBody( "direct:icd-auth", icd11RouteConfig,
-                OAuthResponse.class );
-            producerTemplate.sendBodyAndProperty( "direct:icd11", icd11RouteConfig,
-                ICDAuthRouteBuilder.PROPERTY_AUTH,
-                oAuthResponse );
-        }
-        else
-        {
-            // using ICD11 Docker Container
-            producerTemplate.sendBody( "direct:icd11", icd11RouteConfig );
-        }
+        producerTemplate.sendBodyAndProperty( "direct:icd11", null, Constants.PROPERTY_COMMAND_CONFIG,
+            icd11CommandConfig );
     }
 }

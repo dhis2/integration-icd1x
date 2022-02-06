@@ -34,8 +34,8 @@ import org.apache.camel.Processor;
 import org.apache.camel.component.http.HttpMethods;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
+import org.hisp.dhis.integration.icd1x.Constants;
 import org.hisp.dhis.integration.icd1x.models.OAuthResponse;
-import org.hisp.dhis.integration.icd1x.routes.ICDAuthRouteBuilder;
 
 public class HeadersSetter implements Processor
 {
@@ -47,7 +47,7 @@ public class HeadersSetter implements Processor
         exchange.getMessage().setHeader( Exchange.HTTP_METHOD, HttpMethods.GET );
         exchange.getMessage().setHeader( HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType() );
 
-        OAuthResponse auth = exchange.getProperty( ICDAuthRouteBuilder.PROPERTY_AUTH, OAuthResponse.class );
+        OAuthResponse auth = exchange.getProperty( Constants.PROPERTY_AUTH_RESPONSE, OAuthResponse.class );
         if ( auth != null )
         {
             exchange.getMessage().setHeader( HttpHeaders.AUTHORIZATION, "Bearer " + auth.getAccessToken() );

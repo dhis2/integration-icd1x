@@ -47,6 +47,15 @@ public class Constants
 
     public static final String VERBOSE = "verbose";
 
+    public static final String PROPERTY_AUTH_RESPONSE = "auth_response";
+
+    public static final String PROPERTY_AUTH_REQUESTED = "auth_requested";
+
+    /**
+     * Configurations collected from the command line
+     */
+    public static final String PROPERTY_COMMAND_CONFIG = "command_config";
+
     public static String getAsExchangeProperty( String property )
     {
         return String.format( "${exchangeProperty.%s}", property );
