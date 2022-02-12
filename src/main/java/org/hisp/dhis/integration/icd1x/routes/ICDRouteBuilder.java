@@ -33,6 +33,7 @@ import static org.hisp.dhis.integration.icd1x.Constants.getAsExchangeProperty;
 import java.util.Collections;
 import java.util.LinkedList;
 
+import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.dataformat.JsonLibrary;
@@ -81,7 +82,7 @@ public class ICDRouteBuilder extends RouteBuilder
     {
         from( "direct:icd" )
             .routeId( "icd-route" )
-            .log( "Parsing ICD11..." )
+            .log( "Parsing ICD1" + getAsExchangeProperty( Constants.PROPERTY_ICD_VERSION ) + "..." )
             .process( initRoute() )
             // check whether authentication is requested
             // @formatter:off
@@ -104,20 +105,22 @@ public class ICDRouteBuilder extends RouteBuilder
                                 + "/icd/release/"+getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)
                                 + "/" + getAsExchangeProperty( Constants.PROPERTY_RELEASE )
                                 + "/" + getAsExchangeProperty( Constants.PROPERTY_LINEARIZATION )
-                                + "/" + getAsExchangeProperty( Constants.PROPERTY_ID ) )
+                                + "/" + getAsExchangeProperty( Constants.PROPERTY_ID )
+                                + "?throwExceptionOnFailure=false")
                     .when().simple(getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)+" == 10")
                         .toD(
                             getAsExchangeProperty( Constants.PROPERTY_HOST )
                                 + "/icd/release/"+getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)
                                 + "/" + getAsExchangeProperty( Constants.PROPERTY_RELEASE )
-                                + "/" + getAsExchangeProperty( Constants.PROPERTY_ID ) )
+                                + "/" + getAsExchangeProperty( Constants.PROPERTY_ID )
+                                + "?throwExceptionOnFailure=false")
                 .end()
                 .choice()
                     // no token expiration. proceed with the Entity
-                    .when().simple( "${header.CamelHttpResponseCode} == 200" )
+                    .when(header(Exchange.HTTP_RESPONSE_CODE).isEqualTo(200))
                         .unmarshal().json( Entity.class )
                         .process( new EnqueueEntitiesProcessor() )
-                    .when().simple( "${header.CamelHttpResponseCode} == 401" )
+                    .when(header(Exchange.HTTP_RESPONSE_CODE).isEqualTo(401))
                         // the token has been expired
                         .log( "The token has been expired. Refreshing the token..." )
                         .to( "direct:icd-auth" )

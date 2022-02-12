@@ -49,7 +49,7 @@ public class EnqueueEntitiesProcessor implements Processor
         Queue<String> entityQueue = exchange.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, Queue.class );
         List<Entity> entities = exchange.getProperty( Constants.PROPERTY_ENTITIES, List.class );
 
-        List<Entity> icdVersion = exchange.getProperty( Constants.PROPERTY_ICD_VERSION, List.class );
+        String icdVersion = exchange.getProperty( Constants.PROPERTY_ICD_VERSION, String.class );
         int parentOnlyLength = icdVersion.equals( Constants.ICD_11 ) ? 9 : 8;
 
         Entity entity = exchange.getMessage().getBody( Entity.class );

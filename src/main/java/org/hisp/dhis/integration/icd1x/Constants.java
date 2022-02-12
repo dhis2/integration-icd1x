@@ -57,6 +57,8 @@ public class Constants
 
     public static final String ICD_10 = "10";
 
+    public static final String HEADER_API_VERSION = "API-Version";
+
     /**
      * Configurations collected from the command line
      */

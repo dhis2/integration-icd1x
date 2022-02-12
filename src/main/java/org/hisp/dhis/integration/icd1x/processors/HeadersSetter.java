@@ -37,12 +37,16 @@ import org.apache.http.entity.ContentType;
 import org.hisp.dhis.integration.icd1x.Constants;
 import org.hisp.dhis.integration.icd1x.models.OAuthResponse;
 
+/**
+ * This {@link Processor} sets all the headers that are necessary to do a ICD
+ * API call.
+ */
 public class HeadersSetter implements Processor
 {
     @Override
     public void process( Exchange exchange )
     {
-        exchange.getMessage().setHeader( "API-Version", "v2" );
+        exchange.getMessage().setHeader( Constants.HEADER_API_VERSION, "v2" );
         exchange.getMessage().setHeader( HttpHeaders.ACCEPT_LANGUAGE, exchange.getProperty( PROPERTY_LANGUAGE ) );
         exchange.getMessage().setHeader( Exchange.HTTP_METHOD, HttpMethods.GET );
         exchange.getMessage().setHeader( HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType() );

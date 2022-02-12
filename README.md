@@ -58,3 +58,41 @@ OPTIONS
 		[Optional, default = false]
 
 ```
+
+### icd10
+
+```bash
+NAME
+	icd10 - Generate DHIS2 OptionsSet with ICD10 codes and saves the output to a file
+
+SYNOPSYS
+	icd10 [[--release-id] string]  [[--root-category] string]  [[--language] string]  [[--client-id] string]  [[--client-secret] string]  [[--file-out] string]  [--verbose]  
+
+OPTIONS
+	--release-id  string
+		ICD 10 Release Id. One of 2008, 2010, 2016, 2019
+		[Optional, default = 2016]
+
+	--root-category  string
+		ICD category code to start with
+		[Optional, default = ]
+
+	--language  string
+		Language for entity descriptions. One of ar, en, es, zh
+		[Optional, default = en]
+
+	--client-id  string
+		The client id to be used with the publicly hosted icd1 repository
+		[Optional, default = ]
+
+	--client-secret  string
+		The client secret to be used with the publicly hosted icd1 repository
+		[Optional, default = ]
+
+	--file-out  string
+		Path to the output file
+		[Optional, default = options.json]
+
+	--verbose	Indicates whether progress should be displayed verbosely
+		[Optional, default = false]
+```
