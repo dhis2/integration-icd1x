@@ -51,6 +51,12 @@ public class Constants
 
     public static final String PROPERTY_AUTH_REQUESTED = "auth_requested";
 
+    public static final String PROPERTY_ICD_VERSION = "icd_version";
+
+    public static final String ICD_11 = "11";
+
+    public static final String ICD_10 = "10";
+
     /**
      * Configurations collected from the command line
      */

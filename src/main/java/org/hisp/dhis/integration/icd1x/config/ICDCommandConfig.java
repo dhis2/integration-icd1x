@@ -30,13 +30,9 @@ package org.hisp.dhis.integration.icd1x.config;
 import lombok.Data;
 
 @Data
-public class ICD11CommandConfig
+public class ICDCommandConfig
 {
-    private String rootId;
-
-    private String releaseId;
-
-    private String linearizationName;
+    private String icdVersion;
 
     private String language;
 
@@ -49,4 +45,18 @@ public class ICD11CommandConfig
     private String fileOut;
 
     private boolean verbose;
+
+    private String rootId;
+
+    private String releaseId;
+
+    /**
+     * LinearizationName is applicable only for ICD11
+     */
+    private String linearizationName;
+
+    public ICDCommandConfig( String icdVersion )
+    {
+        this.icdVersion = icdVersion;
+    }
 }

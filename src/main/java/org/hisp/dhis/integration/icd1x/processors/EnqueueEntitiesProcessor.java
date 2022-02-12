@@ -49,6 +49,9 @@ public class EnqueueEntitiesProcessor implements Processor
         Queue<String> entityQueue = exchange.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, Queue.class );
         List<Entity> entities = exchange.getProperty( Constants.PROPERTY_ENTITIES, List.class );
 
+        List<Entity> icdVersion = exchange.getProperty( Constants.PROPERTY_ICD_VERSION, List.class );
+        int parentOnlyLength = icdVersion.equals( Constants.ICD_11 ) ? 9 : 8;
+
         Entity entity = exchange.getMessage().getBody( Entity.class );
         entities.add( entity );
 
@@ -64,11 +67,11 @@ public class EnqueueEntitiesProcessor implements Processor
 
         entityQueue.addAll( entity.getChild().stream().map( url -> {
             String[] split = url.split( "/" );
-            if ( split.length == 9 )
+            if ( split.length == parentOnlyLength )
             {
                 return split[split.length - 1];
             }
-            else if ( split.length == 10 )
+            else if ( split.length == parentOnlyLength + 1 )
             {
                 return split[split.length - 2] + "/" + split[split.length - 1];
             }

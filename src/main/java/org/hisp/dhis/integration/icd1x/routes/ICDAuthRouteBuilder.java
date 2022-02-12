@@ -30,7 +30,7 @@ package org.hisp.dhis.integration.icd1x.routes;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.hisp.dhis.integration.icd1x.Constants;
-import org.hisp.dhis.integration.icd1x.config.ICD11CommandConfig;
+import org.hisp.dhis.integration.icd1x.config.ICDCommandConfig;
 import org.hisp.dhis.integration.icd1x.models.OAuthResponse;
 import org.springframework.stereotype.Component;
 
@@ -47,8 +47,10 @@ public class ICDAuthRouteBuilder extends RouteBuilder
             .setHeader( "Accept" )
             .simple( "application/json" )
             .setBody( exchange -> {
-                ICD11CommandConfig config = exchange.getProperty( Constants.PROPERTY_COMMAND_CONFIG,
-                    ICD11CommandConfig.class );
+                ICDCommandConfig config = exchange.getProperty( Constants.PROPERTY_COMMAND_CONFIG,
+                    ICDCommandConfig.class );
+                System.out.println( "grant_type=client_credentials&client_id=" + config.getClientId()
+                    + "&client_secret=" + config.getClientSecret() + "&scope=icdapi_access" );
                 return "grant_type=client_credentials&client_id=" + config.getClientId()
                     + "&client_secret=" + config.getClientSecret() + "&scope=icdapi_access";
             } )

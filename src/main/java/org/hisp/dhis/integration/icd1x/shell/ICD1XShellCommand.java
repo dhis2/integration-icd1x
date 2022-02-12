@@ -29,7 +29,7 @@ package org.hisp.dhis.integration.icd1x.shell;
 
 import org.apache.camel.ProducerTemplate;
 import org.hisp.dhis.integration.icd1x.Constants;
-import org.hisp.dhis.integration.icd1x.config.ICD11CommandConfig;
+import org.hisp.dhis.integration.icd1x.config.ICDCommandConfig;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
@@ -47,9 +47,39 @@ public class ICD1XShellCommand
 
     @SuppressWarnings( "unused" )
     @ShellMethod( "Generate DHIS2 OptionsSet with ICD10 codes and saves the output to a file" )
-    public void ic10()
+    public void icd10(
+        @ShellOption( defaultValue = "2016", help = "ICD 10 Release Id. One of 2008, 2010, 2016, 2019" ) String releaseId,
+        @ShellOption( defaultValue = "", help = "ICD category code to start with" ) String rootCategory,
+        @ShellOption( defaultValue = "en", help = "Language for entity descriptions. One of ar, en, es, zh" ) String language,
+        @ShellOption( defaultValue = "", help = "The client id to be used with the publicly hosted icd1 repository" ) String clientId,
+        @ShellOption( defaultValue = "", help = "The client secret to be used with the publicly hosted icd1 repository" ) String clientSecret,
+        @ShellOption( defaultValue = "options.json", help = "Path to the output file" ) String fileOut,
+        @ShellOption( help = "Indicates whether progress should be displayed verbosely" ) boolean verbose )
     {
+        ICDCommandConfig icd10CommandConfig = new ICDCommandConfig( Constants.ICD_10 );
+        icd10CommandConfig.setReleaseId( releaseId );
+        icd10CommandConfig.setHost( "https://id.who.int/" );
+        icd10CommandConfig.setClientId( clientId );
+        icd10CommandConfig.setClientSecret( clientSecret );
+        icd10CommandConfig.setRootId( rootCategory );
+        icd10CommandConfig.setReleaseId( releaseId );
+        icd10CommandConfig.setLanguage( language );
+        icd10CommandConfig.setFileOut( fileOut );
+        icd10CommandConfig.setVerbose( verbose );
 
+        // Since there is no docker version for icd10, auth is mandatory
+        if ( !StringUtils.hasLength( clientId ) )
+        {
+            throw new RuntimeException( "Client ID is required" );
+        }
+
+        if ( !StringUtils.hasLength( clientSecret ) )
+        {
+            throw new RuntimeException( "Client Secret is required" );
+        }
+
+        producerTemplate.sendBodyAndProperty( "direct:icd", null, Constants.PROPERTY_COMMAND_CONFIG,
+            icd10CommandConfig );
     }
 
     @SuppressWarnings( "unused" )
@@ -60,12 +90,12 @@ public class ICD1XShellCommand
         @ShellOption( defaultValue = "mms", help = "Short name for the linearization. e.g. mms for ICD Mortality and Morbidity Statistics" ) String linearizationName,
         @ShellOption( defaultValue = "en", help = "Language for entity descriptions. One of ar, en, es, zh" ) String language,
         @ShellOption( defaultValue = "http://localhost", help = "Host of the ICD11 repository. The default value works with docker approach" ) String host,
-        @ShellOption( defaultValue = "The client id to be used with the publicly hosted icd1 repository" ) String clientId,
-        @ShellOption( defaultValue = "The client secret to be used with the publicly hosted icd1 repository" ) String clientSecret,
+        @ShellOption( defaultValue = "", help = "The client id to be used with the publicly hosted icd1 repository" ) String clientId,
+        @ShellOption( defaultValue = "", help = "The client secret to be used with the publicly hosted icd1 repository" ) String clientSecret,
         @ShellOption( defaultValue = "options.json", help = "Path to the output file" ) String fileOut,
         @ShellOption( help = "Indicates whether progress should be displayed verbosely" ) boolean verbose )
     {
-        ICD11CommandConfig icd11CommandConfig = new ICD11CommandConfig();
+        ICDCommandConfig icd11CommandConfig = new ICDCommandConfig( Constants.ICD_11 );
         icd11CommandConfig.setRootId( rootId );
         icd11CommandConfig.setHost( host );
         icd11CommandConfig.setClientId( clientId );
@@ -84,7 +114,7 @@ public class ICD1XShellCommand
 
         // todo validate host and other validation
 
-        producerTemplate.sendBodyAndProperty( "direct:icd11", null, Constants.PROPERTY_COMMAND_CONFIG,
+        producerTemplate.sendBodyAndProperty( "direct:icd", null, Constants.PROPERTY_COMMAND_CONFIG,
             icd11CommandConfig );
     }
 }

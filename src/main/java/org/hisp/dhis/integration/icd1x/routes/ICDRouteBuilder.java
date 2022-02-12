@@ -37,7 +37,7 @@ import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.dataformat.JsonLibrary;
 import org.hisp.dhis.integration.icd1x.Constants;
-import org.hisp.dhis.integration.icd1x.config.ICD11CommandConfig;
+import org.hisp.dhis.integration.icd1x.config.ICDCommandConfig;
 import org.hisp.dhis.integration.icd1x.models.Entity;
 import org.hisp.dhis.integration.icd1x.processors.EnqueueEntitiesProcessor;
 import org.hisp.dhis.integration.icd1x.processors.HeadersSetter;
@@ -46,13 +46,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 @Component
-public class ICD11RouteBuilder extends RouteBuilder
+public class ICDRouteBuilder extends RouteBuilder
 {
     private Processor initRoute()
     {
         return exchange -> {
-            ICD11CommandConfig routeConfig = exchange.getProperty( Constants.PROPERTY_COMMAND_CONFIG,
-                ICD11CommandConfig.class );
+            ICDCommandConfig routeConfig = exchange.getProperty( Constants.PROPERTY_COMMAND_CONFIG,
+                ICDCommandConfig.class );
 
             // extracting properties
             exchange.setProperty( Constants.PROPERTY_HOST, routeConfig.getHost() );
@@ -61,6 +61,7 @@ public class ICD11RouteBuilder extends RouteBuilder
             exchange.setProperty( Constants.PROPERTY_LANGUAGE, routeConfig.getLanguage() );
             exchange.setProperty( Constants.PROPERTY_OUTPUT_FILE, routeConfig.getFileOut() );
             exchange.setProperty( Constants.VERBOSE, routeConfig.isVerbose() );
+            exchange.setProperty( Constants.PROPERTY_ICD_VERSION, routeConfig.getIcdVersion() );
 
             // determine whether auth requested
             exchange.setProperty( Constants.PROPERTY_AUTH_REQUESTED,
@@ -78,9 +79,8 @@ public class ICD11RouteBuilder extends RouteBuilder
     @Override
     public void configure()
     {
-        // todo parallelize if necessary
-        from( "direct:icd11" )
-            .routeId( "icd11-route" )
+        from( "direct:icd" )
+            .routeId( "icd-route" )
             .log( "Parsing ICD11..." )
             .process( initRoute() )
             // check whether authentication is requested
@@ -97,11 +97,21 @@ public class ICD11RouteBuilder extends RouteBuilder
                 .exchange( ex -> ex.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).poll() )
                 // set headers for the icd11 API call
                 .process( new HeadersSetter() )
-                .toD(
-                    getAsExchangeProperty( Constants.PROPERTY_HOST )
-                        + "/icd/release/11/" + getAsExchangeProperty( Constants.PROPERTY_RELEASE )
-                        + "/" + getAsExchangeProperty( Constants.PROPERTY_LINEARIZATION )
-                        + "/" + getAsExchangeProperty( Constants.PROPERTY_ID ) )
+                .choice()
+                    .when().simple(getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)+" == 11")
+                        .toD(
+                            getAsExchangeProperty( Constants.PROPERTY_HOST )
+                                + "/icd/release/"+getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)
+                                + "/" + getAsExchangeProperty( Constants.PROPERTY_RELEASE )
+                                + "/" + getAsExchangeProperty( Constants.PROPERTY_LINEARIZATION )
+                                + "/" + getAsExchangeProperty( Constants.PROPERTY_ID ) )
+                    .when().simple(getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)+" == 10")
+                        .toD(
+                            getAsExchangeProperty( Constants.PROPERTY_HOST )
+                                + "/icd/release/"+getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)
+                                + "/" + getAsExchangeProperty( Constants.PROPERTY_RELEASE )
+                                + "/" + getAsExchangeProperty( Constants.PROPERTY_ID ) )
+                .end()
                 .choice()
                     // no token expiration. proceed with the Entity
                     .when().simple( "${header.CamelHttpResponseCode} == 200" )
