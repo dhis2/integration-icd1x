@@ -42,6 +42,7 @@ public class ICDAuthRouteBuilder extends RouteBuilder
     public void configure()
     {
         from( "direct:icd-auth" )
+            .id( "authentication" )
             .setHeader( Exchange.CONTENT_TYPE )
             .simple( "application/x-www-form-urlencoded" )
             .setHeader( "Accept" )
@@ -49,8 +50,6 @@ public class ICDAuthRouteBuilder extends RouteBuilder
             .setBody( exchange -> {
                 ICDCommandConfig config = exchange.getProperty( Constants.PROPERTY_COMMAND_CONFIG,
                     ICDCommandConfig.class );
-                System.out.println( "grant_type=client_credentials&client_id=" + config.getClientId()
-                    + "&client_secret=" + config.getClientSecret() + "&scope=icdapi_access" );
                 return "grant_type=client_credentials&client_id=" + config.getClientId()
                     + "&client_secret=" + config.getClientSecret() + "&scope=icdapi_access";
             } )

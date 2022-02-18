@@ -37,6 +37,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.dataformat.JsonLibrary;
+import org.apache.http.HttpStatus;
 import org.hisp.dhis.integration.icd1x.Constants;
 import org.hisp.dhis.integration.icd1x.config.ICDCommandConfig;
 import org.hisp.dhis.integration.icd1x.models.Entity;
@@ -82,7 +83,7 @@ public class ICDRouteBuilder extends RouteBuilder
     {
         from( "direct:icd" )
             .routeId( "icd-route" )
-            .log( "Parsing ICD1" + getAsExchangeProperty( Constants.PROPERTY_ICD_VERSION ) + "..." )
+            .log( "Parsing ICD" + getAsExchangeProperty( Constants.PROPERTY_ICD_VERSION ) + "..." )
             .process( initRoute() )
             // check whether authentication is requested
             // @formatter:off
@@ -90,7 +91,6 @@ public class ICDRouteBuilder extends RouteBuilder
                 .when().simple(getAsExchangeProperty(PROPERTY_AUTH_REQUESTED))
                     .to("direct:icd-auth")
             .end()
-            // START DO WHILE
             .loopDoWhile(
                 exchange -> !exchange.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).isEmpty())
                 // read entity id and set as a property
@@ -99,28 +99,26 @@ public class ICDRouteBuilder extends RouteBuilder
                 // set headers for the icd11 API call
                 .process( new HeadersSetter() )
                 .choice()
-                    .when().simple(getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)+" == 11")
-                        .toD(
-                            getAsExchangeProperty( Constants.PROPERTY_HOST )
-                                + "/icd/release/"+getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)
-                                + "/" + getAsExchangeProperty( Constants.PROPERTY_RELEASE )
-                                + "/" + getAsExchangeProperty( Constants.PROPERTY_LINEARIZATION )
-                                + "/" + getAsExchangeProperty( Constants.PROPERTY_ID )
-                                + "?throwExceptionOnFailure=false")
-                    .when().simple(getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)+" == 10")
-                        .toD(
-                            getAsExchangeProperty( Constants.PROPERTY_HOST )
-                                + "/icd/release/"+getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)
-                                + "/" + getAsExchangeProperty( Constants.PROPERTY_RELEASE )
-                                + "/" + getAsExchangeProperty( Constants.PROPERTY_ID )
-                                + "?throwExceptionOnFailure=false")
+                    .when().simple(String.format("%s == 11", getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)))
+                        .toD(String.format("%s/icd/release/%s/%s/%s/%s?throwExceptionOnFailure=false",
+                                getAsExchangeProperty( Constants.PROPERTY_HOST ),
+                                getAsExchangeProperty( Constants.PROPERTY_ICD_VERSION),
+                                getAsExchangeProperty( Constants.PROPERTY_RELEASE ),
+                                getAsExchangeProperty( Constants.PROPERTY_LINEARIZATION ),
+                                getAsExchangeProperty( Constants.PROPERTY_ID )))
+                    .when().simple(String.format("%s == 10", getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)))
+                        .toD(String.format("%s/icd/release/%s/%s/%s?throwExceptionOnFailure=false",
+                                getAsExchangeProperty( Constants.PROPERTY_HOST ),
+                                getAsExchangeProperty( Constants.PROPERTY_ICD_VERSION),
+                                getAsExchangeProperty( Constants.PROPERTY_RELEASE ),
+                                getAsExchangeProperty( Constants.PROPERTY_ID )))
                 .end()
                 .choice()
                     // no token expiration. proceed with the Entity
-                    .when(header(Exchange.HTTP_RESPONSE_CODE).isEqualTo(200))
+                    .when(header(Exchange.HTTP_RESPONSE_CODE).isEqualTo(HttpStatus.SC_OK))
                         .unmarshal().json( Entity.class )
                         .process( new EnqueueEntitiesProcessor() )
-                    .when(header(Exchange.HTTP_RESPONSE_CODE).isEqualTo(401))
+                    .when(header(Exchange.HTTP_RESPONSE_CODE).isEqualTo(HttpStatus.SC_UNAUTHORIZED))
                         // the token has been expired
                         .log( "The token has been expired. Refreshing the token..." )
                         .to( "direct:icd-auth" )
@@ -130,7 +128,6 @@ public class ICDRouteBuilder extends RouteBuilder
                     .otherwise()
                         .log("Unexpected status code ${header.CamelHttpResponseCode}")
                 .end()
-            // END DO WHILE
             // @formatter:on
             .end()
             .log( "Generating DHIS2 options..." )
@@ -138,6 +135,7 @@ public class ICDRouteBuilder extends RouteBuilder
             .marshal()
             .json( JsonLibrary.Jackson, false )
             .log( "Writing OptionSets to " + getAsExchangeProperty( Constants.PROPERTY_OUTPUT_FILE ) )
-            .toD( "file:" + getAsExchangeProperty( Constants.PROPERTY_OUTPUT_FILE ) + "?charset=utf-8" );
+            .toD( "file:" + getAsExchangeProperty( Constants.PROPERTY_OUTPUT_FILE )
+                + "?charset=utf-8&fileName=optionset.json" );
     }
 }

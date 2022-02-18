@@ -47,7 +47,6 @@ public class ToOptionsProcessor implements Processor
         List<Entity> entities = exchange.getProperty( PROPERTY_ENTITIES, List.class );
 
         OptionSet optionSet = new OptionSet();
-        optionSet.setName( "icd11" );
         optionSet.setValueType( "TEXT" );
         optionSet.setName( entities.remove( 0 ).getTitle().getValue() );
 
@@ -60,6 +59,6 @@ public class ToOptionsProcessor implements Processor
 
         optionSet.setOptions( options );
 
-        exchange.getMessage().setBody( options );
+        exchange.getMessage().setBody( optionSet );
     }
 }

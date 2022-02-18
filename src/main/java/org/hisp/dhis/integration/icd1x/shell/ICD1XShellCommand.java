@@ -53,7 +53,7 @@ public class ICD1XShellCommand
         @ShellOption( defaultValue = "en", help = "Language for entity descriptions. One of ar, en, es, zh" ) String language,
         @ShellOption( defaultValue = "", help = "The client id to be used with the publicly hosted icd1 repository" ) String clientId,
         @ShellOption( defaultValue = "", help = "The client secret to be used with the publicly hosted icd1 repository" ) String clientSecret,
-        @ShellOption( defaultValue = "options.json", help = "Path to the output file" ) String fileOut,
+        @ShellOption( defaultValue = "output", help = "Path to the output" ) String fileOut,
         @ShellOption( help = "Indicates whether progress should be displayed verbosely" ) boolean verbose )
     {
         ICDCommandConfig icd10CommandConfig = new ICDCommandConfig( Constants.ICD_10 );
@@ -62,7 +62,6 @@ public class ICD1XShellCommand
         icd10CommandConfig.setClientId( clientId );
         icd10CommandConfig.setClientSecret( clientSecret );
         icd10CommandConfig.setRootId( rootCategory );
-        icd10CommandConfig.setReleaseId( releaseId );
         icd10CommandConfig.setLanguage( language );
         icd10CommandConfig.setFileOut( fileOut );
         icd10CommandConfig.setVerbose( verbose );
@@ -92,7 +91,7 @@ public class ICD1XShellCommand
         @ShellOption( defaultValue = "http://localhost", help = "Host of the ICD11 repository. The default value works with docker approach" ) String host,
         @ShellOption( defaultValue = "", help = "The client id to be used with the publicly hosted icd1 repository" ) String clientId,
         @ShellOption( defaultValue = "", help = "The client secret to be used with the publicly hosted icd1 repository" ) String clientSecret,
-        @ShellOption( defaultValue = "options.json", help = "Path to the output file" ) String fileOut,
+        @ShellOption( defaultValue = "output", help = "Path to the output" ) String fileOut,
         @ShellOption( help = "Indicates whether progress should be displayed verbosely" ) boolean verbose )
     {
         ICDCommandConfig icd11CommandConfig = new ICDCommandConfig( Constants.ICD_11 );
