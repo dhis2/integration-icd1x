@@ -27,7 +27,7 @@
  */
 package org.hisp.dhis.integration.icd1x.processors;
 
-import static org.hisp.dhis.integration.icd1x.Constants.PROPERTY_LANGUAGE;
+import static org.hisp.dhis.integration.icd1x.Constants.PROPERTY_CURRENT_LANGUAGE;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -47,7 +47,8 @@ public class HeadersSetter implements Processor
     public void process( Exchange exchange )
     {
         exchange.getMessage().setHeader( Constants.HEADER_API_VERSION, "v2" );
-        exchange.getMessage().setHeader( HttpHeaders.ACCEPT_LANGUAGE, exchange.getProperty( PROPERTY_LANGUAGE ) );
+        exchange.getMessage().setHeader( HttpHeaders.ACCEPT_LANGUAGE,
+            exchange.getProperty( PROPERTY_CURRENT_LANGUAGE ) );
         exchange.getMessage().setHeader( Exchange.HTTP_METHOD, HttpMethods.GET );
         exchange.getMessage().setHeader( HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType() );
 

@@ -32,6 +32,7 @@ import java.util.List;
 import lombok.Data;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 @Data
 @JsonIgnoreProperties( ignoreUnknown = true )
@@ -39,7 +40,12 @@ public class OptionSet
 {
     private String name;
 
+    private String code;
+
     private String valueType;
 
     private List<Option> options;
+
+    @JsonInclude( JsonInclude.Include.NON_NULL )
+    private List<Translation> translations;
 }

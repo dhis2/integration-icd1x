@@ -27,14 +27,18 @@
  */
 package org.hisp.dhis.integration.icd1x.config;
 
+import java.util.Set;
+
 import lombok.Data;
+
+import org.hisp.dhis.integration.icd1x.Constants;
 
 @Data
 public class ICDCommandConfig
 {
     private String icdVersion;
 
-    private String language;
+    private Set<String> languages;
 
     private String host;
 
@@ -58,5 +62,14 @@ public class ICDCommandConfig
     public ICDCommandConfig( String icdVersion )
     {
         this.icdVersion = icdVersion;
+    }
+
+    public void setLanguages( Set<String> languages )
+    {
+        this.languages = languages;
+
+        // adding the default language, if the user has not provided that
+        // already
+        this.languages.add( Constants.LANGUAGE_ENGLISH );
     }
 }

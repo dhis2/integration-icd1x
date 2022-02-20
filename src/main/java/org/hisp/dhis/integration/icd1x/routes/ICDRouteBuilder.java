@@ -31,6 +31,7 @@ import static org.hisp.dhis.integration.icd1x.Constants.PROPERTY_AUTH_REQUESTED;
 import static org.hisp.dhis.integration.icd1x.Constants.getAsExchangeProperty;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
 import org.apache.camel.Exchange;
@@ -60,20 +61,21 @@ public class ICDRouteBuilder extends RouteBuilder
             exchange.setProperty( Constants.PROPERTY_HOST, routeConfig.getHost() );
             exchange.setProperty( Constants.PROPERTY_RELEASE, routeConfig.getReleaseId() );
             exchange.setProperty( Constants.PROPERTY_LINEARIZATION, routeConfig.getLinearizationName() );
-            exchange.setProperty( Constants.PROPERTY_LANGUAGE, routeConfig.getLanguage() );
             exchange.setProperty( Constants.PROPERTY_OUTPUT_FILE, routeConfig.getFileOut() );
             exchange.setProperty( Constants.VERBOSE, routeConfig.isVerbose() );
             exchange.setProperty( Constants.PROPERTY_ICD_VERSION, routeConfig.getIcdVersion() );
+            exchange.setProperty( Constants.PROPERTY_ROOT_ID, routeConfig.getRootId() );
+
+            // set languages as a queue
+            exchange.setProperty( Constants.PROPERTY_LANGUAGES, new LinkedList<>( routeConfig.getLanguages() ) );
 
             // determine whether auth requested
             exchange.setProperty( Constants.PROPERTY_AUTH_REQUESTED,
                 StringUtils.hasLength( routeConfig.getClientId() ) );
 
-            // entity IDs queue
-            exchange.setProperty( Constants.PROPERTY_ENTITY_ID_QUEUE,
-                new LinkedList<>( Collections.singleton( "" ) ) );
-            // list of collected entities
-            exchange.setProperty( Constants.PROPERTY_ENTITIES, new LinkedList<>() );
+            // map of collected entities. Order is not much important. However,
+            // identifying the root is useful in ToOptionsProcessor.
+            exchange.setProperty( Constants.PROPERTY_ENTITIES, new LinkedHashMap<>() );
         };
     }
 
@@ -91,44 +93,58 @@ public class ICDRouteBuilder extends RouteBuilder
                 .when().simple(getAsExchangeProperty(PROPERTY_AUTH_REQUESTED))
                     .to("direct:icd-auth")
             .end()
-            .loopDoWhile(
-                exchange -> !exchange.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).isEmpty())
-                // read entity id and set as a property
-                .setProperty( Constants.PROPERTY_ID )
-                .exchange( ex -> ex.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).poll() )
-                // set headers for the icd11 API call
-                .process( new HeadersSetter() )
-                .choice()
-                    .when().simple(String.format("%s == 11", getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)))
-                        .toD(String.format("%s/icd/release/%s/%s/%s/%s?throwExceptionOnFailure=false",
-                                getAsExchangeProperty( Constants.PROPERTY_HOST ),
-                                getAsExchangeProperty( Constants.PROPERTY_ICD_VERSION),
-                                getAsExchangeProperty( Constants.PROPERTY_RELEASE ),
-                                getAsExchangeProperty( Constants.PROPERTY_LINEARIZATION ),
-                                getAsExchangeProperty( Constants.PROPERTY_ID )))
-                    .when().simple(String.format("%s == 10", getAsExchangeProperty(Constants.PROPERTY_ICD_VERSION)))
-                        .toD(String.format("%s/icd/release/%s/%s/%s?throwExceptionOnFailure=false",
-                                getAsExchangeProperty( Constants.PROPERTY_HOST ),
-                                getAsExchangeProperty( Constants.PROPERTY_ICD_VERSION),
-                                getAsExchangeProperty( Constants.PROPERTY_RELEASE ),
-                                getAsExchangeProperty( Constants.PROPERTY_ID )))
-                .end()
-                .choice()
-                    // no token expiration. proceed with the Entity
-                    .when(header(Exchange.HTTP_RESPONSE_CODE).isEqualTo(HttpStatus.SC_OK))
-                        .unmarshal().json( Entity.class )
-                        .process( new EnqueueEntitiesProcessor() )
-                    .when(header(Exchange.HTTP_RESPONSE_CODE).isEqualTo(HttpStatus.SC_UNAUTHORIZED))
-                        // the token has been expired
-                        .log( "The token has been expired. Refreshing the token..." )
-                        .to( "direct:icd-auth" )
-                        // putting the failed ID back to the queue
-                        .process( exchange -> exchange.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, LinkedList.class )
-                            .add(0, exchange.getProperty( Constants.PROPERTY_ID ) ) )
-                    .otherwise()
-                        .log("Unexpected status code ${header.CamelHttpResponseCode}")
-                .end()
-            // @formatter:on
+            .loopDoWhile( exchange -> !exchange.getProperty( Constants.PROPERTY_LANGUAGES, LinkedList.class ).isEmpty() )
+                .setProperty( Constants.PROPERTY_CURRENT_LANGUAGE )
+                .exchange( ex->ex.getProperty( Constants.PROPERTY_LANGUAGES, LinkedList.class ).poll() )
+                .log( String.format( "Processing language %s", getAsExchangeProperty( Constants.PROPERTY_CURRENT_LANGUAGE ) ) )
+                // add the starting point : root id
+                .process( exchange -> {
+                    // entity IDs queue
+                    exchange.setProperty( Constants.PROPERTY_ENTITY_ID_QUEUE,
+                        new LinkedList<>( Collections.singleton( exchange.getProperty(Constants.PROPERTY_ROOT_ID, String.class) ) ) );
+                })
+                // flag the beginning, so EnqueueEntitiesProcessor can handle the root, which doesn't have a code
+                .setProperty(Constants.FLAG_ROOT, () -> true)
+                .loopDoWhile(
+                    exchange -> !exchange.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).isEmpty() )
+                    // read entity id and set as a property
+                    .setProperty( Constants.PROPERTY_ID )
+                    .exchange( ex -> ex.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, LinkedList.class ).poll() )
+                    // set headers for the icd11 API call
+                    .process( new HeadersSetter() )
+                    .choice()
+                        .when().simple( String.format( "%s == 11", getAsExchangeProperty( Constants.PROPERTY_ICD_VERSION ) ) )
+                            .toD( String.format( "%s/icd/release/%s/%s/%s/%s?throwExceptionOnFailure=false" ,
+                                    getAsExchangeProperty( Constants.PROPERTY_HOST ),
+                                    getAsExchangeProperty( Constants.PROPERTY_ICD_VERSION ),
+                                    getAsExchangeProperty( Constants.PROPERTY_RELEASE ),
+                                    getAsExchangeProperty( Constants.PROPERTY_LINEARIZATION ),
+                                    getAsExchangeProperty( Constants.PROPERTY_ID ) ) )
+                        .when().simple( String.format( "%s == 10", getAsExchangeProperty( Constants.PROPERTY_ICD_VERSION ) ) )
+                            .toD( String.format( "%s/icd/release/%s/%s/%s?throwExceptionOnFailure=false" ,
+                                    getAsExchangeProperty( Constants.PROPERTY_HOST ),
+                                    getAsExchangeProperty( Constants.PROPERTY_ICD_VERSION),
+                                    getAsExchangeProperty( Constants.PROPERTY_RELEASE ),
+                                    getAsExchangeProperty( Constants.PROPERTY_ID )))
+                    .end()
+                    .choice()
+                        // no token expiration. proceed with the Entity
+                        .when( header( Exchange.HTTP_RESPONSE_CODE ).isEqualTo( HttpStatus.SC_OK ) )
+                            .unmarshal().json( Entity.class )
+                            .process( new EnqueueEntitiesProcessor() )
+                        .when( header( Exchange.HTTP_RESPONSE_CODE ).isEqualTo( HttpStatus.SC_UNAUTHORIZED ) )
+                            // the token has been expired
+                            .log( "The token has been expired. Refreshing the token..." )
+                            .to( "direct:icd-auth" )
+                            // putting the failed ID back to the queue
+                            .process( exchange -> exchange.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, LinkedList.class )
+                                .add(0, exchange.getProperty( Constants.PROPERTY_ID ) ) )
+                        .otherwise()
+                            .log( "Unexpected status code ${header.CamelHttpResponseCode}" )
+                    .end()
+                // @formatter:on
+            .setProperty( Constants.FLAG_ROOT, () -> false )
+            .end()
             .end()
             .log( "Generating DHIS2 options..." )
             .process( new ToOptionsProcessor() )

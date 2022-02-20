@@ -27,6 +27,8 @@
  */
 package org.hisp.dhis.integration.icd1x.shell;
 
+import java.util.Set;
+
 import org.apache.camel.ProducerTemplate;
 import org.hisp.dhis.integration.icd1x.Constants;
 import org.hisp.dhis.integration.icd1x.config.ICDCommandConfig;
@@ -50,7 +52,7 @@ public class ICD1XShellCommand
     public void icd10(
         @ShellOption( defaultValue = "2016", help = "ICD 10 Release Id. One of 2008, 2010, 2016, 2019" ) String releaseId,
         @ShellOption( defaultValue = "", help = "ICD category code to start with" ) String rootCategory,
-        @ShellOption( defaultValue = "en", help = "Language for entity descriptions. One of ar, en, es, zh" ) String language,
+        @ShellOption( defaultValue = "en", help = "Language for entity descriptions. A set of ar, en, es, zh" ) Set<String> languages,
         @ShellOption( defaultValue = "", help = "The client id to be used with the publicly hosted icd1 repository" ) String clientId,
         @ShellOption( defaultValue = "", help = "The client secret to be used with the publicly hosted icd1 repository" ) String clientSecret,
         @ShellOption( defaultValue = "output", help = "Path to the output" ) String fileOut,
@@ -62,7 +64,7 @@ public class ICD1XShellCommand
         icd10CommandConfig.setClientId( clientId );
         icd10CommandConfig.setClientSecret( clientSecret );
         icd10CommandConfig.setRootId( rootCategory );
-        icd10CommandConfig.setLanguage( language );
+        icd10CommandConfig.setLanguages( languages );
         icd10CommandConfig.setFileOut( fileOut );
         icd10CommandConfig.setVerbose( verbose );
 
@@ -87,7 +89,7 @@ public class ICD1XShellCommand
         @ShellOption( defaultValue = "", help = "ICD Entity ID to start with" ) String rootId,
         @ShellOption( defaultValue = "2021-05", help = "ICD 11 Release Id. One of 2021-05, 2020-09, 2019-04, 2018" ) String releaseId,
         @ShellOption( defaultValue = "mms", help = "Short name for the linearization. e.g. mms for ICD Mortality and Morbidity Statistics" ) String linearizationName,
-        @ShellOption( defaultValue = "en", help = "Language for entity descriptions. One of ar, en, es, zh" ) String language,
+        @ShellOption( defaultValue = "en", help = "Language for entity descriptions. A set of ar, en, es, zh" ) Set<String> languages,
         @ShellOption( defaultValue = "http://localhost", help = "Host of the ICD11 repository. The default value works with docker approach" ) String host,
         @ShellOption( defaultValue = "", help = "The client id to be used with the publicly hosted icd1 repository" ) String clientId,
         @ShellOption( defaultValue = "", help = "The client secret to be used with the publicly hosted icd1 repository" ) String clientSecret,
@@ -101,7 +103,7 @@ public class ICD1XShellCommand
         icd11CommandConfig.setClientSecret( clientSecret );
         icd11CommandConfig.setLinearizationName( linearizationName );
         icd11CommandConfig.setReleaseId( releaseId );
-        icd11CommandConfig.setLanguage( language );
+        icd11CommandConfig.setLanguages( languages );
         icd11CommandConfig.setFileOut( fileOut );
         icd11CommandConfig.setVerbose( verbose );
 

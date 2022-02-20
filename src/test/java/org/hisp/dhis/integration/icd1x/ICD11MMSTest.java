@@ -28,6 +28,9 @@
 package org.hisp.dhis.integration.icd1x;
 
 import java.io.*;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Objects;
 
 import org.apache.camel.ProducerTemplate;
@@ -63,9 +66,10 @@ public class ICD11MMSTest
     @Container
     private static final GenericContainer<?> icd11Container = new GenericContainer<>( "whoicd/icd-api" )
         .withEnv( "acceptLicense", "true" )
+        .withEnv( "include", "2021-05_ar-en-es-zh" )
         .withExposedPorts( 80 )
         .withNetwork( network )
-        .waitingFor( Wait.forHttp( "/" ).forStatusCode( 404 ) );
+        .waitingFor( Wait.forHttp( "/" ).forStatusCode( 404 ).withStartupTimeout( Duration.ofMinutes( 5 ) ) );
 
     @Test
     public void test11Route()
@@ -80,9 +84,9 @@ public class ICD11MMSTest
             String.format( "http://%s:%s", icd11Container.getHost(),
                 icd11Container.getFirstMappedPort() ) );
         icdCommandConfig.setRootId( "" );
-        icdCommandConfig.setLanguage( "en" );
+        icdCommandConfig.setLanguages( new HashSet<>( Arrays.asList( "en", "ar" ) ) );
         icdCommandConfig.setFileOut( absolutePath );
-        icdCommandConfig.setVerbose( true );
+        icdCommandConfig.setVerbose( false );
 
         producerTemplate.sendBodyAndProperty( "direct:icd", null,
             Constants.PROPERTY_COMMAND_CONFIG,

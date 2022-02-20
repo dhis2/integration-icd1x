@@ -27,7 +27,8 @@
  */
 package org.hisp.dhis.integration.icd1x.processors;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Queue;
 import java.util.stream.Collectors;
 
@@ -37,6 +38,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hisp.dhis.integration.icd1x.Constants;
 import org.hisp.dhis.integration.icd1x.models.Entity;
+import org.springframework.util.StringUtils;
 
 @SuppressWarnings( "unchecked" )
 public class EnqueueEntitiesProcessor implements Processor
@@ -46,14 +48,27 @@ public class EnqueueEntitiesProcessor implements Processor
     @Override
     public void process( Exchange exchange )
     {
+        String currentLanguage = exchange.getProperty( Constants.PROPERTY_CURRENT_LANGUAGE, String.class );
         Queue<String> entityQueue = exchange.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, Queue.class );
-        List<Entity> entities = exchange.getProperty( Constants.PROPERTY_ENTITIES, List.class );
+        Map<String, Map<String, Entity>> entities = exchange.getProperty( Constants.PROPERTY_ENTITIES, Map.class );
 
         String icdVersion = exchange.getProperty( Constants.PROPERTY_ICD_VERSION, String.class );
         int parentOnlyLength = icdVersion.equals( Constants.ICD_11 ) ? 9 : 8;
 
         Entity entity = exchange.getMessage().getBody( Entity.class );
-        entities.add( entity );
+
+        if ( exchange.getProperty( Constants.FLAG_ROOT, Boolean.class ) )
+        {
+            // first one is the root
+            entity.setCode( "ROOT" );
+        }
+
+        // adding to the entity set, ony if code is present
+        if ( StringUtils.hasLength( entity.getCode() ) )
+        {
+            Map<String, Entity> languagesMap = entities.computeIfAbsent( entity.getCode(), nw -> new HashMap<>() );
+            languagesMap.put( currentLanguage, entity );
+        }
 
         if ( entity.getChild() == null )
         {
@@ -80,5 +95,8 @@ public class EnqueueEntitiesProcessor implements Processor
                 throw new RuntimeException( "Unexpected URL format returned as a child : " + url );
             }
         } ).filter( id -> !id.equals( "unspecified" ) ).collect( Collectors.toList() ) );
+
+        // make child List Garbage Collectible
+        entity.setChild( null );
     }
 }

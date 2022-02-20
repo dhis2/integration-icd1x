@@ -33,7 +33,9 @@ public class Constants
 
     public static final String PROPERTY_ENTITIES = "entities";
 
-    public static final String PROPERTY_LANGUAGE = "language";
+    public static final String PROPERTY_LANGUAGES = "languages";
+
+    public static final String PROPERTY_CURRENT_LANGUAGE = "current_language";
 
     public static final String PROPERTY_OUTPUT_FILE = "file";
 
@@ -53,11 +55,20 @@ public class Constants
 
     public static final String PROPERTY_ICD_VERSION = "icd_version";
 
+    public static final String PROPERTY_ROOT_ID = "root_id";
+
     public static final String ICD_11 = "11";
 
     public static final String ICD_10 = "10";
 
     public static final String HEADER_API_VERSION = "API-Version";
+
+    public static final String LANGUAGE_ENGLISH = "en";
+
+    public static final String TRANSLATION_PROPERTY_NAME = "NAME";
+
+    // flags the root Entity to the EnqueueEntityProcessor
+    public static final String FLAG_ROOT = "root";
 
     /**
      * Configurations collected from the command line
