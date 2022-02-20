@@ -3,6 +3,14 @@
 ## Requirements
 
 * Java 11+
+* Docker(Optional), if using the local ICD API
+* ICD API keys(optional), if using the remote ICD API
+
+## ICD API
+
+Refer [WHO ICD Docs](https://icd.who.int/icdapi) for information about accessing ICD-API remotely or locally.
+
+**Note:** Only ICD11 is available in docker mode(locally). ICD10 codes should always be fetched from the remote API.
 
 ## Building & Starting
 
