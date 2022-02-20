@@ -40,6 +40,12 @@ import org.hisp.dhis.integration.icd1x.Constants;
 import org.hisp.dhis.integration.icd1x.models.Entity;
 import org.springframework.util.StringUtils;
 
+/**
+ * This class reads the latest {@link Entity} fetched and adds that to the
+ * collection of entities and fills the entityQueue with the child Entities, so
+ * it can be picked up by a subsequent iteration in the doWhileLoop of the
+ * {@link org.hisp.dhis.integration.icd1x.routes.ICDRouteBuilder}
+ */
 @SuppressWarnings( "unchecked" )
 public class EnqueueEntitiesProcessor implements Processor
 {

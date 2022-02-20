@@ -38,6 +38,10 @@ import org.apache.camel.Processor;
 import org.hisp.dhis.integration.icd1x.Constants;
 import org.hisp.dhis.integration.icd1x.models.*;
 
+/**
+ * This class converts all the {@link Entity} into a DHIS2 compatible payload
+ * format, so it can be imported via the api/metadata endpoint.
+ */
 @SuppressWarnings( "unchecked" )
 public class ToOptionsProcessor implements Processor
 {
