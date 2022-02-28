@@ -27,28 +27,35 @@
  */
 package org.hisp.dhis.integration.icd1x.processors;
 
-import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_LANGUAGE;
+import static org.hisp.dhis.integration.icd1x.Constants.PROPERTY_CURRENT_LANGUAGE;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
+import org.apache.camel.component.http.HttpMethods;
+import org.apache.http.HttpHeaders;
+import org.apache.http.entity.ContentType;
+import org.hisp.dhis.integration.icd1x.Constants;
 import org.hisp.dhis.integration.icd1x.models.OAuthResponse;
-import org.hisp.dhis.integration.icd1x.routes.ICDAuthRouteBuilder;
 
+/**
+ * This {@link Processor} sets all the headers that are necessary to do a ICD
+ * API call.
+ */
 public class HeadersSetter implements Processor
 {
-
     @Override
     public void process( Exchange exchange )
     {
-        exchange.getMessage().setHeader( "API-Version", "v2" );
-        exchange.getMessage().setHeader( "Accept-Language", exchange.getProperty( PROPERTY_LANGUAGE ) );
-        exchange.getMessage().setHeader( Exchange.HTTP_METHOD, "GET" );
-        exchange.getMessage().setHeader( "Accept", "application/json" );
+        exchange.getMessage().setHeader( Constants.HEADER_API_VERSION, "v2" );
+        exchange.getMessage().setHeader( HttpHeaders.ACCEPT_LANGUAGE,
+            exchange.getProperty( PROPERTY_CURRENT_LANGUAGE ) );
+        exchange.getMessage().setHeader( Exchange.HTTP_METHOD, HttpMethods.GET );
+        exchange.getMessage().setHeader( HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType() );
 
-        OAuthResponse auth = exchange.getProperty( ICDAuthRouteBuilder.PROPERTY_AUTH, OAuthResponse.class );
+        OAuthResponse auth = exchange.getProperty( Constants.PROPERTY_AUTH_RESPONSE, OAuthResponse.class );
         if ( auth != null )
         {
-            exchange.getMessage().setHeader( "Authorization", "Bearer " + auth.getAccessToken() );
+            exchange.getMessage().setHeader( HttpHeaders.AUTHORIZATION, "Bearer " + auth.getAccessToken() );
         }
     }
 }

@@ -27,42 +27,72 @@
  */
 package org.hisp.dhis.integration.icd1x.processors;
 
-import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_ENTITIES;
-import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_ENTITY_ID_QUEUE;
-
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Queue;
 import java.util.stream.Collectors;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.hisp.dhis.integration.icd1x.Constants;
 import org.hisp.dhis.integration.icd1x.models.Entity;
+import org.springframework.util.StringUtils;
 
+/**
+ * This class reads the latest {@link Entity} fetched and adds that to the
+ * collection of entities and fills the entityQueue with the child Entities, so
+ * it can be picked up by a subsequent iteration in the doWhileLoop of the
+ * {@link org.hisp.dhis.integration.icd1x.routes.ICDRouteBuilder}
+ */
 @SuppressWarnings( "unchecked" )
 public class EnqueueEntitiesProcessor implements Processor
 {
+    private static final Logger LOG = LogManager.getLogger( EnqueueEntitiesProcessor.class );
 
     @Override
     public void process( Exchange exchange )
     {
+        String currentLanguage = exchange.getProperty( Constants.PROPERTY_CURRENT_LANGUAGE, String.class );
+        Queue<String> entityQueue = exchange.getProperty( Constants.PROPERTY_ENTITY_ID_QUEUE, Queue.class );
+        Map<String, Map<String, Entity>> entities = exchange.getProperty( Constants.PROPERTY_ENTITIES, Map.class );
 
-        Queue<String> entityQueue = exchange.getProperty( PROPERTY_ENTITY_ID_QUEUE, Queue.class );
-        List<Entity> entities = exchange.getProperty( PROPERTY_ENTITIES, List.class );
+        String icdVersion = exchange.getProperty( Constants.PROPERTY_ICD_VERSION, String.class );
+        int parentOnlyLength = icdVersion.equals( Constants.ICD_11 ) ? 9 : 8;
 
         Entity entity = exchange.getMessage().getBody( Entity.class );
-        entities.add( entity );
+
+        if ( exchange.getProperty( Constants.FLAG_ROOT, Boolean.class ) )
+        {
+            // first one is the root
+            entity.setCode( "ROOT" );
+        }
+
+        // adding to the entity set, ony if code is present
+        if ( StringUtils.hasLength( entity.getCode() ) )
+        {
+            Map<String, Entity> languagesMap = entities.computeIfAbsent( entity.getCode(), nw -> new HashMap<>() );
+            languagesMap.put( currentLanguage, entity );
+        }
 
         if ( entity.getChild() == null )
         {
             return;
         }
+
+        if ( exchange.getProperty( Constants.VERBOSE, Boolean.class ) )
+        {
+            LOG.info( "Processed entity [{}] {}", entity.getCode(), entity.getTitle().getValue() );
+        }
+
         entityQueue.addAll( entity.getChild().stream().map( url -> {
             String[] split = url.split( "/" );
-            if ( split.length == 9 )
+            if ( split.length == parentOnlyLength )
             {
                 return split[split.length - 1];
             }
-            else if ( split.length == 10 )
+            else if ( split.length == parentOnlyLength + 1 )
             {
                 return split[split.length - 2] + "/" + split[split.length - 1];
             }
@@ -71,5 +101,8 @@ public class EnqueueEntitiesProcessor implements Processor
                 throw new RuntimeException( "Unexpected URL format returned as a child : " + url );
             }
         } ).filter( id -> !id.equals( "unspecified" ) ).collect( Collectors.toList() ) );
+
+        // make child List Garbage Collectible
+        entity.setChild( null );
     }
 }

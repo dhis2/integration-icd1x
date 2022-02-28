@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, University of Oslo
+ * Copyright (c) 2004-2022, University of Oslo
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,9 +29,10 @@ package org.hisp.dhis.integration.icd1x.models;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import lombok.Data;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 @Data
 @JsonIgnoreProperties( ignoreUnknown = true )
@@ -44,4 +45,7 @@ public class OptionSet
     private String valueType;
 
     private List<Option> options;
+
+    @JsonInclude( JsonInclude.Include.NON_NULL )
+    private List<Translation> translations;
 }

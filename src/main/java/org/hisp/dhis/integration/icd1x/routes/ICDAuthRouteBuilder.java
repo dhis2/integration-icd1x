@@ -29,26 +29,27 @@ package org.hisp.dhis.integration.icd1x.routes;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
-import org.hisp.dhis.integration.icd1x.config.ICD11RouteConfig;
+import org.hisp.dhis.integration.icd1x.Constants;
+import org.hisp.dhis.integration.icd1x.config.ICDCommandConfig;
 import org.hisp.dhis.integration.icd1x.models.OAuthResponse;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ICDAuthRouteBuilder extends RouteBuilder
 {
-    public static final String PROPERTY_AUTH = "auth";
 
     @Override
     public void configure()
-        throws Exception
     {
         from( "direct:icd-auth" )
+            .id( "authentication" )
             .setHeader( Exchange.CONTENT_TYPE )
             .simple( "application/x-www-form-urlencoded" )
             .setHeader( "Accept" )
             .simple( "application/json" )
             .setBody( exchange -> {
-                ICD11RouteConfig config = exchange.getMessage().getBody( ICD11RouteConfig.class );
+                ICDCommandConfig config = exchange.getProperty( Constants.PROPERTY_COMMAND_CONFIG,
+                    ICDCommandConfig.class );
                 return "grant_type=client_credentials&client_id=" + config.getClientId()
                     + "&client_secret=" + config.getClientSecret() + "&scope=icdapi_access";
             } )
@@ -57,6 +58,7 @@ public class ICDAuthRouteBuilder extends RouteBuilder
             .log( "Authenticating..." )
             .to( "https://icdaccessmanagement.who.int/connect/token" )
             .unmarshal().json( OAuthResponse.class )
-            .end();
+            .setProperty( Constants.PROPERTY_AUTH_RESPONSE )
+            .body();
     }
 }

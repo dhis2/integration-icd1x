@@ -27,40 +27,88 @@
  */
 package org.hisp.dhis.integration.icd1x.processors;
 
-import static org.hisp.dhis.integration.icd1x.routes.ICD11RouteBuilder.PROPERTY_ENTITIES;
+import static org.hisp.dhis.integration.icd1x.Constants.PROPERTY_ENTITIES;
+import static org.hisp.dhis.integration.icd1x.Constants.PROPERTY_ICD_VERSION;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
-import org.hisp.dhis.integration.icd1x.models.Entity;
-import org.hisp.dhis.integration.icd1x.models.Option;
-import org.hisp.dhis.integration.icd1x.models.OptionSet;
+import org.hisp.dhis.integration.icd1x.Constants;
+import org.hisp.dhis.integration.icd1x.models.*;
 
+/**
+ * This class converts all the {@link Entity} into a DHIS2 compatible payload
+ * format, so it can be imported via the api/metadata endpoint.
+ */
 @SuppressWarnings( "unchecked" )
 public class ToOptionsProcessor implements Processor
 {
 
+    private static List<Translation> toTranslations( Map<String, Entity> entities )
+    {
+        if ( entities.isEmpty() )
+        {
+            return null;
+        }
+        return entities.entrySet().stream().map( entry -> {
+            Translation translation = new Translation();
+            translation.setProperty( Constants.TRANSLATION_PROPERTY_NAME );
+            translation.setLocale( entry.getKey() );
+            translation.setValue( entry.getValue().getTitle().getValue() );
+            return translation;
+        } ).collect( Collectors.toList() );
+    }
+
     @Override
     public void process( Exchange exchange )
     {
-        List<Entity> entities = exchange.getProperty( PROPERTY_ENTITIES, List.class );
+        // Map<OPT_CODE, Map<LANG_CODE, Entity>>
+        LinkedHashMap<String, Map<String, Entity>> entities = exchange.getProperty(
+            PROPERTY_ENTITIES, LinkedHashMap.class );
+        String icdVersion = exchange.getProperty( PROPERTY_ICD_VERSION, String.class );
+
+        MetadataPayload metadataPayload = new MetadataPayload();
+
+        Iterator<Map.Entry<String, Map<String, Entity>>> entitiesItr = entities.entrySet().iterator();
+
+        Map<String, Entity> entries = entitiesItr.next().getValue();
+        Entity englishEntry = entries.remove( Constants.LANGUAGE_ENGLISH );
 
         OptionSet optionSet = new OptionSet();
-        optionSet.setName( "icd11" );
         optionSet.setValueType( "TEXT" );
-        optionSet.setName( entities.remove( 0 ).getTitle().getValue() );
+        optionSet.setCode( String.format( "icd%s", icdVersion ) );
+        optionSet.setName( englishEntry.getTitle().getValue() );
 
-        List<Option> options = entities.stream().map( entity -> {
+        optionSet.setTranslations( toTranslations( entries ) );
+
+        List<Option> options = new ArrayList<>();
+
+        while ( entitiesItr.hasNext() )
+        {
+            entries = entitiesItr.next().getValue();
+            englishEntry = entries.remove( Constants.LANGUAGE_ENGLISH );
+
             Option option = new Option();
-            option.setCode( entity.getCode() );
-            option.setName( entity.getTitle().getValue() );
-            return option;
-        } ).collect( Collectors.toList() );
+            option.setCode( englishEntry.getCode() );
+            option.setName( englishEntry.getTitle().getValue() );
 
-        optionSet.setOptions( options );
+            List<Translation> translations = toTranslations( entries );
+            option.setTranslations( translations );
+            options.add( option );
+        }
 
-        exchange.getMessage().setBody( options );
+        // remove name to make the payload less bulky
+        optionSet.setOptions( options.stream().map( option -> {
+            Option op = new Option();
+            op.setCode( option.getCode() );
+            return op;
+        } ).collect( Collectors.toList() ) );
+
+        metadataPayload.setOptionSets( Collections.singletonList( optionSet ) );
+        metadataPayload.setOptions( options );
+
+        exchange.getMessage().setBody( metadataPayload );
     }
 }

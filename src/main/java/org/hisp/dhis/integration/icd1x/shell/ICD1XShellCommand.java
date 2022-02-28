@@ -27,10 +27,11 @@
  */
 package org.hisp.dhis.integration.icd1x.shell;
 
+import java.util.Set;
+
 import org.apache.camel.ProducerTemplate;
-import org.hisp.dhis.integration.icd1x.config.ICD11RouteConfig;
-import org.hisp.dhis.integration.icd1x.models.OAuthResponse;
-import org.hisp.dhis.integration.icd1x.routes.ICDAuthRouteBuilder;
+import org.hisp.dhis.integration.icd1x.Constants;
+import org.hisp.dhis.integration.icd1x.config.ICDCommandConfig;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
@@ -39,7 +40,6 @@ import org.springframework.util.StringUtils;
 @ShellComponent
 public class ICD1XShellCommand
 {
-
     private final ProducerTemplate producerTemplate;
 
     public ICD1XShellCommand( ProducerTemplate producerTemplate )
@@ -48,47 +48,74 @@ public class ICD1XShellCommand
     }
 
     @SuppressWarnings( "unused" )
-    @ShellMethod( "Generate DHIS2 OptionsSet with ICD11 codes" )
+    @ShellMethod( "Generate DHIS2 OptionsSet with ICD10 codes and saves the output to a file" )
+    public void icd10(
+        @ShellOption( defaultValue = "2016", help = "ICD 10 Release Id. One of 2008, 2010, 2016, 2019" ) String releaseId,
+        @ShellOption( defaultValue = "", help = "ICD category code to start with" ) String rootCategory,
+        @ShellOption( defaultValue = "en", help = "Language for entity descriptions. A set of ar, en, es, zh" ) Set<String> languages,
+        @ShellOption( defaultValue = "", help = "The client id to be used with the publicly hosted icd1 repository" ) String clientId,
+        @ShellOption( defaultValue = "", help = "The client secret to be used with the publicly hosted icd1 repository" ) String clientSecret,
+        @ShellOption( defaultValue = "output", help = "Path to the output" ) String fileOut,
+        @ShellOption( help = "Indicates whether progress should be displayed verbosely" ) boolean verbose )
+    {
+        ICDCommandConfig icd10CommandConfig = new ICDCommandConfig( Constants.ICD_10 );
+        icd10CommandConfig.setReleaseId( releaseId );
+        icd10CommandConfig.setHost( "https://id.who.int/" );
+        icd10CommandConfig.setClientId( clientId );
+        icd10CommandConfig.setClientSecret( clientSecret );
+        icd10CommandConfig.setRootId( rootCategory );
+        icd10CommandConfig.setLanguages( languages );
+        icd10CommandConfig.setFileOut( fileOut );
+        icd10CommandConfig.setVerbose( verbose );
+
+        // Since there is no docker version for icd10, auth is mandatory
+        if ( !StringUtils.hasLength( clientId ) )
+        {
+            throw new RuntimeException( "Client ID is required" );
+        }
+
+        if ( !StringUtils.hasLength( clientSecret ) )
+        {
+            throw new RuntimeException( "Client Secret is required" );
+        }
+
+        producerTemplate.sendBodyAndProperty( "direct:icd", null, Constants.PROPERTY_COMMAND_CONFIG,
+            icd10CommandConfig );
+    }
+
+    @SuppressWarnings( "unused" )
+    @ShellMethod( "Generate DHIS2 OptionsSet with ICD11 codes and saves the output to a file" )
     public void icd11(
         @ShellOption( defaultValue = "", help = "ICD Entity ID to start with" ) String rootId,
         @ShellOption( defaultValue = "2021-05", help = "ICD 11 Release Id. One of 2021-05, 2020-09, 2019-04, 2018" ) String releaseId,
-        @ShellOption( defaultValue = "mms" ) String linearizationName,
-        @ShellOption( defaultValue = "en", help = "Language for entity descriptions. One of ar, en, es, zh" ) String language,
-        @ShellOption( defaultValue = "http://localhost" ) String host,
-        @ShellOption( defaultValue = "" ) String clientId,
-        @ShellOption( defaultValue = "" ) String clientSecret,
-        @ShellOption( defaultValue = "options.json" ) String fileOut )
+        @ShellOption( defaultValue = "mms", help = "Short name for the linearization. e.g. mms for ICD Mortality and Morbidity Statistics" ) String linearizationName,
+        @ShellOption( defaultValue = "en", help = "Language for entity descriptions. A set of ar, en, es, zh" ) Set<String> languages,
+        @ShellOption( defaultValue = "http://localhost", help = "Host of the ICD11 repository. The default value works with docker approach" ) String host,
+        @ShellOption( defaultValue = "", help = "The client id to be used with the publicly hosted icd1 repository" ) String clientId,
+        @ShellOption( defaultValue = "", help = "The client secret to be used with the publicly hosted icd1 repository" ) String clientSecret,
+        @ShellOption( defaultValue = "output", help = "Path to the output" ) String fileOut,
+        @ShellOption( help = "Indicates whether progress should be displayed verbosely" ) boolean verbose )
     {
-        ICD11RouteConfig icd11RouteConfig = new ICD11RouteConfig();
-        icd11RouteConfig.setRootId( rootId );
-        icd11RouteConfig.setHost( host );
-        icd11RouteConfig.setClientId( clientId );
-        icd11RouteConfig.setClientSecret( clientSecret );
-        icd11RouteConfig.setLinearizationName( linearizationName );
-        icd11RouteConfig.setReleaseId( releaseId );
-        icd11RouteConfig.setLanguage( language );
-        icd11RouteConfig.setFileOut( fileOut );
+        ICDCommandConfig icd11CommandConfig = new ICDCommandConfig( Constants.ICD_11 );
+        icd11CommandConfig.setRootId( rootId );
+        icd11CommandConfig.setHost( host );
+        icd11CommandConfig.setClientId( clientId );
+        icd11CommandConfig.setClientSecret( clientSecret );
+        icd11CommandConfig.setLinearizationName( linearizationName );
+        icd11CommandConfig.setReleaseId( releaseId );
+        icd11CommandConfig.setLanguages( languages );
+        icd11CommandConfig.setFileOut( fileOut );
+        icd11CommandConfig.setVerbose( verbose );
 
-        boolean useAuth = StringUtils.hasLength( icd11RouteConfig.getClientId() );
-        if ( useAuth && !StringUtils.hasLength( icd11RouteConfig.getClientSecret() ) )
+        boolean useAuth = StringUtils.hasLength( icd11CommandConfig.getClientId() );
+        if ( useAuth && !StringUtils.hasLength( icd11CommandConfig.getClientSecret() ) )
         {
             throw new RuntimeException( "Client Secret is required" );
         }
 
         // todo validate host and other validation
 
-        if ( useAuth )
-        {
-            OAuthResponse oAuthResponse = producerTemplate.requestBody( "direct:icd-auth", icd11RouteConfig,
-                OAuthResponse.class );
-            producerTemplate.sendBodyAndProperty( "direct:icd11", icd11RouteConfig,
-                ICDAuthRouteBuilder.PROPERTY_AUTH,
-                oAuthResponse );
-        }
-        else
-        {
-            // using ICD11 Docker Container
-            producerTemplate.sendBody( "direct:icd11", icd11RouteConfig );
-        }
+        producerTemplate.sendBodyAndProperty( "direct:icd", null, Constants.PROPERTY_COMMAND_CONFIG,
+            icd11CommandConfig );
     }
 }
