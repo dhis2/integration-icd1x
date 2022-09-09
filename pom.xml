@@ -18,7 +18,7 @@
         <spring.boot-version>2.6.3</spring.boot-version>
         <spring.shell-version>2.0.1.RELEASE</spring.shell-version>
         <surefire.plugin.version>3.0.0-M5</surefire.plugin.version>
-        <camel.version>3.15.0</camel.version>
+        <camel.version>3.18.2</camel.version>
         <testcontainers.version>3.14.0</testcontainers.version>
         <speedy-spotless-maven-plugin.version>0.1.3</speedy-spotless-maven-plugin.version>
     </properties>
